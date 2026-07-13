@@ -255,6 +255,27 @@ class PathFeedback(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class SystemFeedback(TimestampMixin, Base):
+    __tablename__ = "system_feedback"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id"))
+    feedback_type: Mapped[str] = mapped_column(String(64), default="其他", nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    contact: Mapped[str] = mapped_column(String(255), nullable=False)
+    remark: Mapped[str | None] = mapped_column(Text)
+    allow_contact: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="待处理", nullable=False)
+
+
+class PlatformSetting(TimestampMixin, Base):
+    __tablename__ = "platform_setting"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    settings_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+
+
 class EvaluationResult(TimestampMixin, Base):
     __tablename__ = "evaluation_result"
 

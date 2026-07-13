@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 class AuthCompatRegisterRequest(BaseModel):
     username: str = Field(min_length=1, max_length=64)
     email: str = Field(min_length=1, max_length=255)
-    password: str = Field(min_length=1)
+    password: str = Field(min_length=8)
 
 
 class AuthCompatLoginRequest(BaseModel):
@@ -23,7 +23,7 @@ class AuthCompatLoginRequest(BaseModel):
 
 
 def user_payload(user: User) -> dict:
-    is_admin = bool(user.is_admin) or user.role == "admin" or user.username == "admin"
+    is_admin = bool(user.is_admin) or user.role == "admin"
     return {
         "id": user.id,
         "username": user.username,
@@ -60,15 +60,16 @@ def register(payload: AuthCompatRegisterRequest, db: Session = Depends(get_db)) 
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="username is required")
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
+    if db.query(User).filter(User.username == username).first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists")
 
-    is_admin = username == "admin"
     user = User(
         username=username,
         display_name=username,
         email=email,
         password_hash=hash_password(payload.password),
-        role="admin" if is_admin else "student",
-        is_admin=is_admin,
+        role="student",
+        is_admin=False,
         status="active",
     )
     db.add(user)

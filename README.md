@@ -13,13 +13,14 @@
 | 多形态 RAG 生成 | 检索课程证据，生成讲义、网页幻灯片、SVG/Mermaid 思维导图、题库、视频分镜、实验和项目任务书 |
 | 智能辅导 | 基于学生画像、课程证据和多轮上下文进行苏格拉底式引导 |
 | 反馈闭环 | 学习行为和测评结果回写画像，重新规划推荐与学习路径 |
+| 全栈管理 | 反馈处理、生成任务审计、用户权限、平台配置和评测历史均持久化 |
 | 内容治理 | 提示注入拦截、密钥与个人信息脱敏、引用白名单、生成审核和失败自动修复 |
 | 可验证性 | 防泄漏训练、分学生验证、离线指标、接口契约测试和双服务联调 |
 
 ## 系统组成
 
 ```text
-Frontend / Client
+Vue Web :5173 / :8080
         │
         ▼
 LearnPilot Backend :8001
@@ -43,12 +44,13 @@ LearnPilot ML :8000
 LearnPilot-AI/
 ├─ backend/                 主后端 Python 包、数据库脚本和测试
 ├─ ml/                      ML 服务、训练评估和测试
+├─ web/                     Vue 3 学生端与管理端
 ├─ docs/                    仓库级架构文档
-├─ Dockerfile               backend / ml 多阶段镜像
+├─ Dockerfile               backend / ml / web 多阶段镜像
 ├─ docker-compose.yml       完整本地服务栈
 ├─ environment.yml          唯一 Conda 环境定义
-├─ render.yaml              Render 双服务 Blueprint
-└─ .env.example             唯一环境变量模板
+├─ render.yaml              Render 三服务 Blueprint
+└─ .env.example             后端与 ML 环境变量模板
 ```
 
 ## 快速开始
@@ -92,10 +94,19 @@ learnpilot-ml-api
 learnpilot-backend
 ```
 
+终端三：
+
+```powershell
+cd web
+npm ci
+npm run dev
+```
+
 服务地址：
 
 - ML API：`http://127.0.0.1:8000/docs`
 - Backend API：`http://127.0.0.1:8001/docs`
+- Web：`http://127.0.0.1:5173`
 
 真实 Qwen 联调需要在 `.env` 中设置 `DASHSCOPE_API_KEY`，然后执行：
 
@@ -110,6 +121,9 @@ learnpilot-ml-qwen-check
 ```powershell
 python -m unittest discover -s ml/tests -v
 python -m unittest discover -s backend/tests -v
+cd web
+npm run lint
+npm run build
 ```
 
 测试覆盖 ML 学习闭环、训练防泄漏、RAG 引用、辅导、后端业务、ML 适配和前后端接口契约。
@@ -123,14 +137,27 @@ docker-compose build
 docker-compose up
 ```
 
-完整服务栈包括 `backend`、`ml-service`、`worker`、`mysql` 和 `redis`。
+完整服务栈包括 `web`、`backend`、`ml-service`、`worker`、`mysql` 和 `redis`。启动后前端地址为 `http://127.0.0.1:8080`。
 
-Render 部署使用根目录 [render.yaml](render.yaml)。Blueprint 会创建 ML 和后端两个 Web Service，并通过私有网络连接。
+Render 部署使用根目录 [render.yaml](render.yaml)。Blueprint 会创建 Web 静态站点、Backend 与 ML 两个 Web Service，Backend 通过私有网络调用 ML。
+
+## 账号与安全
+
+公开注册始终创建普通学生账号，客户端提交的管理员或教师角色不会生效。管理员只能通过受控运维命令创建或重置：
+
+```powershell
+$env:DATABASE_URL="postgresql://..."
+$env:LEARNPILOT_ADMIN_PASSWORD="使用密码管理器生成的强密码"
+python backend/scripts/reset_admin_password.py
+```
+
+`.env`、数据库导出、运行数据库、模型产物与前端构建目录均被 Git 忽略。生产环境必须设置独立的 `JWT_SECRET_KEY`，不得使用示例值。
 
 ## 文档
 
 - [工程架构](docs/architecture.md)
 - [后端说明](backend/README.md)
+- [前端说明](web/README.md)
 - [后端 API 参考](backend/docs/api-reference.md)
 - [ML 服务说明](ml/README.md)
 - [ML 设计](ml/docs/design.md)

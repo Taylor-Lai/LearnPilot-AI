@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from backend.app.adapters.ml_service_client import MLServiceClient, MLServiceUnavailable
 from backend.app.core.database import get_db
 from backend.app.core.security import optional_user
 from backend.app.models import (
@@ -346,6 +347,113 @@ def _build_task_result(db: Session, topic: str, requirement: str, requested_type
     return result
 
 
+def _ml_resource_payload(resource: ResourceCenter, topic: str) -> dict:
+    style = "video" if resource.resource_type == "video" else "text"
+    return {
+        "resource_id": f"resource_center:{resource.id}",
+        "title": resource.title,
+        "knowledge_points": [resource.knowledge_point or topic],
+        "difficulty": 0.55,
+        "style": style,
+        "estimated_minutes": 25,
+        "quality": 0.85,
+        "url": resource.url,
+        "content": resource.content or resource.description or resource.summary or "",
+        "tags": [item.strip() for item in (resource.tags or "").split(",") if item.strip()],
+    }
+
+
+def _ml_generation_payload(
+    db: Session,
+    topic: str,
+    requirement: str,
+    student_id: str,
+) -> dict:
+    resources = _matching_resources(db, topic, limit=12)
+    return {
+        "student": {
+            "student_id": student_id,
+            "diagnostics": {topic: 0.35},
+            "goals": [requirement or f"系统学习 {topic}"],
+            "preferred_styles": ["text", "example", "quiz"],
+        },
+        "resources": [_ml_resource_payload(resource, topic) for resource in resources] or None,
+        "knowledge_graph": [{"name": topic, "prerequisites": [], "importance": 1.0}],
+        "course_context": {"requirement": requirement or f"系统学习 {topic}"},
+    }
+
+
+def _merge_ml_generation(result: dict, ml_result: dict) -> dict:
+    cards = ml_result.get("generated_cards") or []
+    if not cards:
+        return result
+    card = cards[0]
+    bundle = card.get("resource_bundle") or {}
+    formats = bundle.get("formats") or {}
+
+    lecture = formats.get("lecture") or {}
+    if lecture.get("markdown"):
+        result["lecture"] = {
+            "title": bundle.get("title") or result["lecture"]["title"],
+            "content": lecture["markdown"],
+            "references": card.get("rag_context") or [],
+        }
+
+    mind_map = formats.get("mind_map") or {}
+    if mind_map:
+        result["mind_map"] = {
+            "title": f"{result['topic']} 思维导图",
+            "content": mind_map.get("mermaid") or mind_map.get("summary") or "",
+            "nodes": mind_map.get("nodes") or [],
+            "edges": mind_map.get("edges") or [],
+            "svg": mind_map.get("svg") or "",
+        }
+
+    quiz = formats.get("quiz_bank") or {}
+    if quiz.get("questions"):
+        result["exercises"] = [
+            {
+                "id": item.get("id"),
+                "type": item.get("type", "short_answer"),
+                "question": item.get("prompt", ""),
+                "options": item.get("options") or [],
+                "answer": item.get("answer", ""),
+                "analysis": "；".join(item.get("rubric") or []),
+            }
+            for item in quiz["questions"]
+        ]
+
+    result["resource_bundle"] = bundle
+    result["generation_quality"] = card.get("quality_check") or {}
+    result["review_cycle"] = card.get("review_cycle") or {}
+    result["safety_meta"] = card.get("safety_meta") or {}
+    result["retrieval_evidence"] = card.get("rag_context") or []
+    result["agent_traces"].extend(ml_result.get("agent_traces") or [])
+    return result
+
+
+def _enrich_with_ml(
+    db: Session,
+    result: dict,
+    topic: str,
+    requirement: str,
+    student_id: str,
+) -> dict:
+    try:
+        ml_result = MLServiceClient().generate(_ml_generation_payload(db, topic, requirement, student_id))
+        return _merge_ml_generation(result, ml_result)
+    except MLServiceUnavailable as exc:
+        result["agent_traces"].append(
+            {
+                "agent": "ML 服务适配器",
+                "action": "请求个性化 RAG 与多形态资源包",
+                "output": f"ML 服务不可用，已保留确定性本地生成结果：{exc}",
+            }
+        )
+        result["generation_fallback"] = True
+        return result
+
+
 def _artifact_rows(task_id: str, result: dict, requested_types: list[str]) -> list[ProducerArtifact]:
     artifacts = []
     mapping = {
@@ -434,6 +542,13 @@ def create_task(
         task.progress = 10
         db.commit()
         result = _build_task_result(db, topic, payload.requirement, requested_types)
+        result = _enrich_with_ml(
+            db,
+            result,
+            topic,
+            payload.requirement,
+            str(current_user.id) if current_user else f"producer-{task_id}",
+        )
         db.add_all(_artifact_rows(task_id, result, requested_types))
         task.result_json = result
         task.status = "completed"
@@ -456,9 +571,58 @@ def create_task(
     }
 
 
+@router.get("/tasks")
+def list_student_tasks(
+    limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(optional_user),
+) -> dict:
+    if current_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
+    rows = (
+        db.query(ProducerTask)
+        .filter(ProducerTask.user_id == current_user.id)
+        .order_by(ProducerTask.id.desc())
+        .limit(limit)
+        .all()
+    )
+    return {
+        "items": [
+            {
+                "task_id": task.task_id,
+                "topic": task.topic,
+                "requirement": task.requirement or "",
+                "status": task.status,
+                "progress": int(task.progress or 0),
+                "task_type": task.task_type,
+                "created_at": task.created_at.isoformat() if task.created_at else None,
+                "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+                "error_message": task.error_message,
+            }
+            for task in rows
+        ],
+        "total": len(rows),
+    }
+
+
+def _authorize_task(task: ProducerTask, current_user: User | None) -> None:
+    if task.user_id is None and current_user is None:
+        return
+    if current_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    if task.user_id != current_user.id and not (bool(current_user.is_admin) or current_user.role == "admin"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Task access denied")
+
+
 @router.get("/task/{task_id}")
-def get_task(task_id: str, db: Session = Depends(get_db)) -> dict:
+def get_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(optional_user),
+) -> dict:
     task = _task_or_404(db, task_id)
+    _authorize_task(task, current_user)
     return {
         "task_id": task.task_id,
         "status": task.status,
@@ -469,8 +633,13 @@ def get_task(task_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/result/{task_id}")
-def get_task_result(task_id: str, db: Session = Depends(get_db)) -> dict:
+def get_task_result(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(optional_user),
+) -> dict:
     task = _task_or_404(db, task_id)
+    _authorize_task(task, current_user)
     return {
         "task_id": task.task_id,
         "status": task.status,

@@ -9,6 +9,9 @@
 **/.pytest_cache
 **/.mypy_cache
 **/.ruff_cache
+**/node_modules
+**/.npm-cache
+**/dist
 **/.env
 **/*.db
 **/*.log

@@ -85,7 +85,7 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     principal = decode_access_token(credentials.credentials)
     user = db.get(User, principal.user_id)
-    if user is None:
+    if user is None or (user.status or "active") == "deleted":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
 
@@ -108,7 +108,10 @@ def optional_user(
     if credentials is None:
         return None
     principal = decode_access_token(credentials.credentials)
-    return db.get(User, principal.user_id)
+    user = db.get(User, principal.user_id)
+    if user is None or (user.status or "active") == "deleted":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user
 
 
 def _b64_json(data: dict) -> str:

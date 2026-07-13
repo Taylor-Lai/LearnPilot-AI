@@ -19,7 +19,7 @@ class UserInfoUpdateRequest(BaseModel):
 
 
 def _frontend_role(user: User) -> str:
-    if user.username == "admin" or bool(user.is_admin) or user.role == "admin":
+    if bool(user.is_admin) or user.role == "admin":
         return "ADMIN"
     return "USER"
 

@@ -1,0 +1,81 @@
+/* Phase 3 — global visual harmonization (layout and behavior unchanged). */
+
+/* Page shells */
+.learning-path-page,
+.evaluation-page,
+.auth-page,
+.page {
+  background: var(--bg-page) !important;
+}
+
+/* Shared primary actions */
+.primary-button,
+.primary-btn,
+.primary-action,
+.send-button,
+.submit-button,
+.admin-button {
+  background: var(--btn-primary-bg);
+  border-color: var(--btn-primary-bg);
+  color: #ffffff;
+}
+
+.primary-button:hover,
+.primary-btn:hover,
+.primary-action:hover,
+.send-button:hover:not(:disabled),
+.submit-button:hover:not(:disabled),
+.admin-button:hover {
+  background: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
+}
+
+/* Shared pill tags */
+.ui-tag,
+.admin-tag,
+.status-badge,
+.detail-admin-tag,
+.tag-list span,
+.question-meta em,
+.history-meta em,
+.detail-tags em,
+.tags span,
+.meta-tag,
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  font-style: normal;
+}
+
+/* Form controls */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']):not([type='submit']):not([type='button']):not([type='reset']),
+textarea,
+select,
+.search-input,
+.form-input,
+.filter-select,
+.filter-input {
+  border-radius: var(--radius-input);
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']):not([type='submit']):not([type='button']):not([type='reset']):focus,
+textarea:focus,
+select:focus,
+.search-input:focus,
+.form-input:focus,
+.filter-select:focus,
+.filter-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(106, 82, 255, 0.12);
+}

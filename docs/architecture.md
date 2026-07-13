@@ -2,14 +2,15 @@
 
 ## 服务边界
 
-LearnPilot 由两个可独立安装和部署的 Python 服务组成：
+LearnPilot 由一个 Web 前端和两个可独立安装、部署的 Python 服务组成：
 
+- Web 是 Vue 3 单页应用，只调用 Backend，不直接暴露 ML Service。
 - Backend 是唯一面向前端的业务入口，负责身份、课程、资源、记录、持久化和业务 Agent 编排。
 - ML Service 提供无状态算法能力，负责诊断、画像、排序、路径、RAG 生成、辅导和评估。
 - Backend 通过稳定 HTTP 契约调用 ML Service；ML Service 不访问后端数据库。
 
 ```text
-Client
+Browser / Vue Web
   │
   ▼
 Backend API ──────► MySQL / SQLite
@@ -35,6 +36,11 @@ LearnPilot-AI/
 │  ├─ data/knowledge_base/      可审查的课程种子
 │  ├─ mysql/                    数据库初始化
 │  └─ tests/
+├─ web/                         Vue 3 前端
+│  ├─ src/api/                  Backend 接口适配
+│  ├─ src/components/           通用组件
+│  ├─ src/views/                学生端与管理端页面
+│  └─ src/router/               路由与权限守卫
 ├─ ml/                          ML 可安装包
 │  ├─ src/ml_service/
 │  │  ├─ api/                   FastAPI 与请求契约
@@ -80,9 +86,10 @@ datasets / training / evaluation
 | `backend/pyproject.toml` | 后端运行依赖与启动命令 |
 | `ml/pyproject.toml` | ML 运行依赖与训练/服务命令 |
 | `docker-compose.yml` | MySQL、Redis、ML、Backend、Worker 编排 |
-| `render.yaml` | Render 双服务部署 |
+| `web/.env.example` | Vite 构建地址与本地代理配置 |
+| `render.yaml` | Render Web、Backend、ML 三服务部署 |
 
-不再维护重复 requirements、服务内 `.env.example` 或多个 Dockerfile。
+不再维护重复 requirements 或多个 Dockerfile。根环境模板服务于 Python 服务；`web/.env.example` 仅包含 Vite 构建变量。
 
 ## 生成物策略
 

@@ -50,7 +50,9 @@ $env:DATABASE_MODE="sqlite"
 python backend/scripts/init_sqlite_demo.py
 ```
 
-生产或 Docker Compose 使用 MySQL；建表和种子数据位于 `backend/mysql/`。PostgreSQL 初始化入口为 `backend/scripts/init_postgres.py`。
+生产或 Docker Compose 使用 MySQL；建表和种子数据位于 `backend/mysql/`。PostgreSQL 初始化入口为 `backend/scripts/init_postgres.py`。`mysql_to_postgres.py` 用于受控迁移，执行前必须显式设置 `DATABASE_URL`，仓库不保存数据库口令或数据库导出。
+
+公开注册只创建学生账号。管理员账号使用 `scripts/reset_admin_password.py` 创建或重置，密码通过 `LEARNPILOT_ADMIN_PASSWORD` 或 `--password` 提供；生产环境不要把密码写入命令历史。
 
 ## ML 集成
 

@@ -43,3 +43,17 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         value: "*"
+
+  - type: web
+    name: learnpilot-web
+    runtime: static
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://learnpilot-backend.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

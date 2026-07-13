@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from .admin import router as admin_router
 from .auth import router as auth_router
 from .core_routes import router as core_router
+from .feedback import router as feedback_router
 from .ml import router as ml_router
 from .path import router as path_router
 from .producer import router as producer_router
@@ -18,6 +19,7 @@ for router in (
     core_router,
     auth_router,
     user_router,
+    feedback_router,
     admin_router,
     resources_router,
     profile_builder_router,

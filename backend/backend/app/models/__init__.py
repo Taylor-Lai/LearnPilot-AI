@@ -12,6 +12,7 @@ from backend.app.models.entities import (
     MLProfileAnswer,
     PathFeedback,
     PathNodeProgress,
+    PlatformSetting,
     ProducerArtifact,
     ProducerChatMessage,
     ProducerTask,
@@ -23,6 +24,7 @@ from backend.app.models.entities import (
     StudentAnswer,
     StudentProfile,
     StudentWeakness,
+    SystemFeedback,
     User,
 )
 
@@ -40,6 +42,7 @@ __all__ = [
     "MLProfileAnswer",
     "PathFeedback",
     "PathNodeProgress",
+    "PlatformSetting",
     "ProducerArtifact",
     "ProducerChatMessage",
     "ProducerTask",
@@ -51,5 +54,6 @@ __all__ = [
     "StudentAnswer",
     "StudentProfile",
     "StudentWeakness",
+    "SystemFeedback",
     "User",
 ]

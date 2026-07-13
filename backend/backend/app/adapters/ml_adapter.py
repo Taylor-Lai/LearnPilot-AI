@@ -124,7 +124,7 @@ class MLAdapter:
         weak_points = profile.get("weak_points") or profile.get("weaknesses") or []
         if weak_points:
             return self._weak_points_to_items(weak_points, "Student profile")
-        return self._mock_diagnose_weakness(profile)
+        return self._fallback_diagnose_weakness(profile)
 
     def generate_cards(self, payload: dict[str, Any]) -> dict[str, Any] | None:
         try:
@@ -197,7 +197,7 @@ class MLAdapter:
                 return normalized
         except Exception as exc:
             self.last_fallback_reason = str(exc)
-        return self._mock_evaluate_mastery(correct_count, total_count, completed_resource_count, study_minutes)
+        return self._fallback_evaluate_mastery(correct_count, total_count, completed_resource_count, study_minutes)
 
     def _diagnostics_from_profile(self, profile: StudentProfile | None) -> dict[str, float]:
         if profile and isinstance(profile.mastery, dict):
@@ -424,11 +424,11 @@ class MLAdapter:
             "profile_update": data.get("profile_update") or data.get("updated_profile") or {},
         }
 
-    def _mock_diagnose_weakness(self, profile: dict) -> list[dict]:
+    def _fallback_diagnose_weakness(self, profile: dict) -> list[dict]:
         weak_points = profile.get("weak_points") or ["基础概念"]
         return self._weak_points_to_items(weak_points, "Local fallback diagnosis")
 
-    def _mock_evaluate_mastery(
+    def _fallback_evaluate_mastery(
         self,
         correct_count: int,
         total_count: int,

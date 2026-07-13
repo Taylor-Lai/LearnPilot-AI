@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 class AuthRegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=64)
-    password: str = Field(min_length=6)
+    password: str = Field(min_length=8)
     email: str | None = None
     display_name: str | None = None
     role: str = Field(default="student", pattern="^(student|teacher|admin)$")
@@ -109,12 +109,19 @@ class TutorAskResponse(BaseModel):
     next_action: str
 
 
+class AssessmentAnswer(BaseModel):
+    question_id: int
+    answer: str = ""
+    elapsed_seconds: int = Field(default=0, ge=0)
+
+
 class EvaluationSubmitRequest(BaseModel):
     user_id: int | None = None
     course_id: int | None = None
     path_id: int | None = None
-    correct_count: int = Field(ge=0)
-    total_count: int = Field(gt=0)
+    correct_count: int | None = Field(default=None, ge=0)
+    total_count: int | None = Field(default=None, gt=0)
+    answers: list[AssessmentAnswer] = []
     completed_resource_count: int = Field(ge=0, default=0)
     study_minutes: int = Field(ge=0, default=0)
 
@@ -126,6 +133,11 @@ class EvaluationSubmitResponse(BaseModel):
     profile_update: dict
     path_adjustment: str | None = None
     updated_profile: dict | None = None
+    score: float | None = None
+    accuracy: float | None = None
+    correct_count: int | None = None
+    total_count: int | None = None
+    wrong_items: list[dict] = []
 
 
 class LearningStartRequest(BaseModel):
@@ -183,3 +195,13 @@ class QuestionOut(BaseModel):
     explanation: str | None = None
     difficulty: float
     source: str | None = None
+
+
+class AssessmentQuestionOut(BaseModel):
+    id: int
+    course_id: int
+    knowledge_point_id: int | None = None
+    question_type: str
+    stem: str
+    options: list = []
+    difficulty: float

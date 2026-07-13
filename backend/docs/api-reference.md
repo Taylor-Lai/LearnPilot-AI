@@ -64,6 +64,10 @@ Document recommendations use:
 
 The task is completed synchronously and persisted to `producer_task` and `producer_artifact`. Its result includes `lecture`, `mind_map`, `exercises`, `reading`, `videos`, `code_examples`, `datasets`, `roadmap`, reused resource-center references, and five `agent_traces`.
 
+`GET /producer/tasks`
+
+返回当前登录学生自己的任务列表。该接口以及已登录用户创建的任务详情均执行归属校验。
+
 `GET /producer/task/{task_id}`
 
 Returns status, progress, and timestamps.
@@ -169,10 +173,14 @@ Rebuilds the profile from all existing user answers. If the session was started 
 {
   "username": "teacher1",
   "password": "secret123",
-  "display_name": "教师一",
-  "role": "teacher"
+  "display_name": "学生一",
+  "role": "student"
 }
 ```
+
+公开注册始终落为 `student`，即使请求传入 `teacher` 或 `admin` 也不会获得权限。教师账号由管理员或初始化脚本预置；管理员使用 `scripts/reset_admin_password.py` 受控创建。
+
+前端邮箱认证兼容接口为 `POST /api/auth/register`、`POST /api/auth/login` 和 `GET /api/auth/me`。
 
 `POST /api/v1/auth/login`
 
@@ -223,7 +231,11 @@ Authorization: Bearer <access_token>
 
 `GET /api/v1/courses/{course_id}/questions`
 
-查询课程题库。
+教师或管理员查询完整课程题库。响应包含标准答案，不向学生端开放。
+
+`GET /api/v1/courses/{course_id}/assessment/questions`
+
+学生获取评测题面；必须登录，响应不会包含标准答案。学生将原始作答提交到 `/api/v1/evaluations/submit`，由后端判分并记录作答。
 
 ## 学习画像
 
@@ -302,14 +314,28 @@ Authorization: Bearer <access_token>
 {
   "user_id": 1,
   "path_id": 1,
-  "correct_count": 8,
-  "total_count": 10,
+  "answers": [
+    {"question_id": 1, "answer": "true", "elapsed_seconds": 12}
+  ],
   "completed_resource_count": 3,
   "study_minutes": 120
 }
 ```
 
 提交后会写入反馈事件，并在 ML 服务可用时调用 `/feedback` 更新画像和路径调整摘要。
+
+- `GET /api/v1/evaluations/history`：当前学生最近的评测记录。
+- `GET /api/v1/evaluations/{evaluation_id}`：评测详情，只允许本人或管理员读取。
+
+## 问题反馈与后台配置
+
+- `POST /api/feedback`：匿名或登录用户提交问题反馈，内容真实入库。
+- `GET /admin/feedback`：管理员分页筛选反馈。
+- `PUT /admin/feedback/{feedback_id}/status`：更新处理状态。
+- `DELETE /admin/feedback/{feedback_id}`：删除反馈。
+- `GET /admin/settings`、`PUT /admin/settings`：读取和持久化平台设置。
+
+以上 `/admin` 接口均要求有效管理员 Bearer Token。
 
 ## 一键学习流程
 
@@ -386,3 +412,4 @@ docker compose up --build
 - `mysql`: `3306`
 - `redis`: `6379`
 - `worker`: RQ worker，用于导入、训练、批处理等长任务扩展。
+- `web`: `http://127.0.0.1:8080`

@@ -74,5 +74,16 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-learning_agent}
       REDIS_URL: redis://redis:6379/0
 
+  web:
+    image: learnpilot-web:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
 volumes:
   mysql-data:
