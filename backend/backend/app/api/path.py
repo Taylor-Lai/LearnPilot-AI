@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from backend.app.api.profile import latest_profile, profile_payload, upsert_profile
 from backend.app.core.config import get_settings
 from backend.app.core.database import get_db
+from backend.app.core.security import get_current_user
 from backend.app.models import (
     Course,
     LearningPath,
@@ -282,8 +283,15 @@ def list_paths(userId: int = Query(gt=0), db: Session = Depends(get_db)) -> dict
 
 
 @router.delete("/delete")
-def delete_path(pathId: int = Query(gt=0), db: Session = Depends(get_db)) -> dict:
+def delete_path(
+    pathId: int = Query(gt=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
     path = _path_or_404(db, pathId)
+    is_admin = bool(current_user.is_admin) or current_user.role == "admin"
+    if path.user_id != current_user.id and not is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Learning path access denied")
     path.status = "deleted"
     db.commit()
     return {"success": True, "pathId": str(path.id), "path_id": path.id}

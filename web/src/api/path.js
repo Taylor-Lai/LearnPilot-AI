@@ -86,9 +86,10 @@ export function deleteLearningPath(params = {}) {
   }
 
   return request({
-    url: '/path/delete',
+    // Keep the identifier in the URL so DELETE remains correct even when a
+    // transport wrapper only serializes `params` for GET requests.
+    url: `/path/delete?pathId=${encodeURIComponent(String(pathId))}`,
     method: 'DELETE',
-    params: { pathId },
   })
 }
 

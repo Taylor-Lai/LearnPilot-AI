@@ -19,7 +19,7 @@ os.environ.setdefault("LEARNPILOT_LLM_MODE", "template")
 from backend.app.core.database import Base, get_db
 from backend.app.core.security import hash_password
 from backend.app.main import app
-from backend.app.models import Course, KnowledgePoint, Question, User
+from backend.app.models import Course, KnowledgePoint, LearningPath, Question, User
 from fastapi.testclient import TestClient
 
 
@@ -274,6 +274,46 @@ class ProductionApiTest(unittest.TestCase):
         saved = self.client.put("/admin/settings", headers=headers, json={"siteName": "汇知灵创"})
         self.assertEqual(saved.status_code, 200)
         self.assertEqual(self.client.get("/admin/settings", headers=headers).json()["siteName"], "汇知灵创")
+
+    def test_learning_path_delete_requires_owner_and_removes_it_from_history(self) -> None:
+        owner = self.client.post(
+            "/api/auth/register",
+            json={"username": "path_owner", "email": "path-owner@example.com", "password": "secret123"},
+        ).json()
+        stranger = self.client.post(
+            "/api/auth/register",
+            json={"username": "path_stranger", "email": "path-stranger@example.com", "password": "secret123"},
+        ).json()
+        owner_id = owner["user"]["id"]
+        with self.Session() as db:
+            path = LearningPath(
+                user_id=owner_id,
+                course_id=1,
+                title="待删除路径",
+                goal="验证删除链路",
+                status="active",
+                progress=0,
+            )
+            db.add(path)
+            db.commit()
+            db.refresh(path)
+            path_id = path.id
+
+        stranger_headers = {"Authorization": f"Bearer {stranger['access_token']}"}
+        self.assertEqual(
+            self.client.delete(f"/path/delete?pathId={path_id}", headers=stranger_headers).status_code,
+            403,
+        )
+
+        owner_headers = {"Authorization": f"Bearer {owner['access_token']}"}
+        deleted = self.client.delete(f"/path/delete?pathId={path_id}", headers=owner_headers)
+        self.assertEqual(deleted.status_code, 200)
+        self.assertTrue(deleted.json()["success"])
+
+        history = self.client.get(f"/path/list?userId={owner_id}", headers=owner_headers)
+        self.assertEqual(history.status_code, 200)
+        self.assertEqual(history.json()["items"], [])
+        self.assertEqual(self.client.delete(f"/path/delete?pathId={path_id}", headers=owner_headers).status_code, 404)
 
 
 if __name__ == "__main__":

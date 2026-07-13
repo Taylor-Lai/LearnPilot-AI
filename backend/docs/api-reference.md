@@ -38,6 +38,8 @@ Path endpoints:
 
 Path and node responses expose camelCase `pathId` and `nodeId`, with numeric `path_id` and `node_id` compatibility fields. Path generation tries the configured ML path service first and falls back to local generation.
 
+删除路径必须携带 Bearer Token，仅路径所有者或管理员可以执行。删除采用软删除，成功后该路径会立即从学生的历史路径列表中消失。
+
 Document recommendations use:
 
 ```json
