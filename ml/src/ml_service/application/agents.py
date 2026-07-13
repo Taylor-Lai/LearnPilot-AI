@@ -10,6 +10,7 @@ from ..infrastructure.ranker import TrainableRanker
 from .path_planner import LearningPathPlanner
 from .profiler import StudentProfiler
 from .recommender import ResourceRecommender
+from .resource_formats import ResourceBundleBuilder
 from .tutor import TutorAgent as GroundedTutor
 
 
@@ -86,21 +87,62 @@ class GenerationEvaluationAgent:
         self,
         generator: ContentGenerator | None = None,
         retriever: ResourceRetriever | None = None,
+        bundle_builder: ResourceBundleBuilder | None = None,
     ) -> None:
         self.generator = generator or ContentGenerator()
         self.retriever = retriever or ResourceRetriever()
+        self.bundle_builder = bundle_builder or ResourceBundleBuilder()
 
     def generate_cards(
         self, profile: StudentProfile, steps: list[LearningStep], resources
     ) -> tuple[list[dict], AgentTrace]:
         cards: list[dict] = []
+        repaired_count = 0
         for step in steps[:3]:
             contexts = self.retriever.retrieve(step.knowledge_point, resources, top_k=3)
             card = self.generator.generate_study_card(profile, step, contexts)
-            card["quality_check"] = self.evaluate_card(step.knowledge_point, card)
+            self._attach_resource_bundle(card, step, profile)
+            initial_review = self.evaluate_card(step.knowledge_point, card)
+            reviews = [initial_review]
+            if not initial_review["passed"]:
+                card = self.generator.repair_study_card(
+                    profile,
+                    step,
+                    card,
+                    contexts,
+                    initial_review["failed_checks"],
+                )
+                self._attach_resource_bundle(card, step, profile)
+                reviews.append(self.evaluate_card(step.knowledge_point, card))
+                repaired_count += 1
+            card["quality_check"] = reviews[-1]
+            card["review_cycle"] = {
+                "attempts": len(reviews),
+                "repaired": len(reviews) > 1,
+                "initial_score": reviews[0]["score"],
+                "final_score": reviews[-1]["score"],
+                "status": "approved" if reviews[-1]["passed"] else "rejected",
+                "reviews": reviews,
+            }
             cards.append(card)
-        trace = AgentTrace("生成与评估 Agent", "检索课程资源后生成学习卡，并检查覆盖度", f"生成 {len(cards)} 张学习卡")
+        approved = sum(card["quality_check"]["passed"] for card in cards)
+        trace = AgentTrace(
+            "生成与评估 Agent",
+            "生成多形态资源，执行安全、引用和教学完整性审核，不合格内容自动修复后复审",
+            f"生成 {len(cards)} 组资源，修复 {repaired_count} 组，审核通过 {approved} 组",
+        )
         return cards, trace
+
+    def _attach_resource_bundle(self, card: dict, step: LearningStep, profile: StudentProfile) -> None:
+        bundle = self.bundle_builder.build(card, step, profile)
+        sanitized, review = self.generator.safety_guard.sanitize_payload(bundle)
+        card["resource_bundle"] = sanitized
+        safety_meta = card.setdefault("safety_meta", {"safe": True})
+        safety_meta["safe"] = self.generator.safety_guard.review_payload(sanitized).safe
+        safety_meta["output_violations"] = list(
+            dict.fromkeys([*safety_meta.get("output_violations", []), *review.violations])
+        )
+        safety_meta["redaction_count"] = int(safety_meta.get("redaction_count", 0)) + review.redaction_count
 
     def evaluate_card(self, knowledge_point: str, card: dict) -> dict:
         joined = " ".join(str(value) for value in card.values())
@@ -119,35 +161,48 @@ class GenerationEvaluationAgent:
         has_mistake_analysis = bool(card.get("mistake_analysis"))
         has_difficulty_reason = bool(card.get("difficulty_reason"))
         personalized = any(token in joined for token in ("风险", "薄弱", "学生", "掌握"))
-        safe = not any(token in joined.lower() for token in ("忽略答案", "无需验证", "随便"))
+        safety_meta = card.get("safety_meta", {})
+        safe = bool(safety_meta.get("safe", False)) and not any(
+            token in joined.lower() for token in ("忽略答案", "无需验证", "随便")
+        )
+        required_formats = {"lecture", "slide_deck", "mind_map", "quiz_bank", "video_storyboard", "lab", "project"}
+        actual_formats = set(card.get("resource_bundle", {}).get("formats", {}))
+        multi_format_complete = required_formats.issubset(actual_formats)
+        privacy_safe = not self.generator.safety_guard.review_payload(card).violations
         score = round(
-            (0.22 if covers_point else 0.0)
-            + (0.16 if has_practice else 0.0)
-            + (0.14 if has_answer else 0.0)
-            + (0.12 if has_review else 0.0)
-            + (0.06 if has_evidence else 0.0)
-            + (0.04 if grounded_citations else 0.0)
-            + (0.1 if has_mistake_analysis else 0.0)
-            + (0.08 if has_difficulty_reason else 0.0)
+            (0.15 if covers_point else 0.0)
+            + (0.1 if has_practice else 0.0)
+            + (0.08 if has_answer else 0.0)
+            + (0.06 if has_review else 0.0)
+            + (0.05 if has_evidence else 0.0)
+            + (0.09 if grounded_citations else 0.0)
+            + (0.06 if has_mistake_analysis else 0.0)
+            + (0.05 if has_difficulty_reason else 0.0)
             + (0.04 if personalized else 0.0)
-            + (0.04 if safe else 0.0),
+            + (0.12 if safe else 0.0)
+            + (0.12 if multi_format_complete else 0.0)
+            + (0.08 if privacy_safe else 0.0),
             2,
         )
+        checks = {
+            "covers_knowledge_point": covers_point,
+            "has_practice": has_practice,
+            "has_answer": has_answer,
+            "has_review_tip": has_review,
+            "has_rag_evidence": has_evidence,
+            "grounded_citations": grounded_citations,
+            "has_mistake_analysis": has_mistake_analysis,
+            "has_difficulty_reason": has_difficulty_reason,
+            "personalized": personalized,
+            "safe": safe,
+            "multi_format_complete": multi_format_complete,
+            "privacy_safe": privacy_safe,
+        }
         return {
-            "passed": score >= 0.75 and safe and (grounded_citations or not has_evidence),
+            "passed": score >= 0.8 and safe and multi_format_complete and (grounded_citations or not has_evidence),
             "score": score,
-            "checks": {
-                "covers_knowledge_point": covers_point,
-                "has_practice": has_practice,
-                "has_answer": has_answer,
-                "has_review_tip": has_review,
-                "has_rag_evidence": has_evidence,
-                "grounded_citations": grounded_citations,
-                "has_mistake_analysis": has_mistake_analysis,
-                "has_difficulty_reason": has_difficulty_reason,
-                "personalized": personalized,
-                "safe": safe,
-            },
+            "checks": checks,
+            "failed_checks": [name for name, passed in checks.items() if not passed],
         }
 
 

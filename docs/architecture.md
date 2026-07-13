@@ -38,9 +38,9 @@ LearnPilot-AI/
 ├─ ml/                          ML 可安装包
 │  ├─ src/ml_service/
 │  │  ├─ api/                   FastAPI 与请求契约
-│  │  ├─ application/           学习闭环编排
+│  │  ├─ application/           学习闭环编排与多形态资源构建
 │  │  ├─ domain/                领域模型与纯逻辑
-│  │  ├─ infrastructure/        排序、检索和 LLM
+│  │  ├─ infrastructure/        排序、检索、内容安全和 LLM
 │  │  ├─ datasets/              内置与合成数据
 │  │  ├─ training/              训练工作流
 │  │  └─ evaluation/            离线评估

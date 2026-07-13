@@ -85,6 +85,30 @@ def grounded_generation_rate(result: dict) -> float:
     return round(grounded / len(cards), 4)
 
 
+def multi_format_coverage_rate(result: dict) -> float:
+    cards = result["generated_cards"]
+    if not cards:
+        return 0.0
+    complete = sum(bool(card.get("quality_check", {}).get("checks", {}).get("multi_format_complete")) for card in cards)
+    return round(complete / len(cards), 4)
+
+
+def safe_generation_rate(result: dict) -> float:
+    cards = result["generated_cards"]
+    if not cards:
+        return 0.0
+    safe = sum(bool(card.get("quality_check", {}).get("checks", {}).get("safe")) for card in cards)
+    return round(safe / len(cards), 4)
+
+
+def review_approval_rate(result: dict) -> float:
+    cards = result["generated_cards"]
+    if not cards:
+        return 0.0
+    approved = sum(card.get("review_cycle", {}).get("status") == "approved" for card in cards)
+    return round(approved / len(cards), 4)
+
+
 def explainability_rate(result: dict) -> float:
     recommendations = result["recommendations"]
     if not recommendations:
@@ -117,6 +141,9 @@ def run_builtin_evaluation(root: Path, write_report: bool = True) -> dict:
                 "path_prerequisite_score": path_prerequisite_score(result, pipeline.knowledge_graph),
                 "generation_quality": generation_quality(result),
                 "grounded_generation_rate": grounded_generation_rate(result),
+                "multi_format_coverage_rate": multi_format_coverage_rate(result),
+                "safe_generation_rate": safe_generation_rate(result),
+                "review_approval_rate": review_approval_rate(result),
                 "explainability_rate": explainability_rate(result),
                 **recommendation_diversity(result),
                 "predicted": predicted,
@@ -146,6 +173,9 @@ def _summarize(rows: list[dict]) -> dict:
         "path_prerequisite_score",
         "generation_quality",
         "grounded_generation_rate",
+        "multi_format_coverage_rate",
+        "safe_generation_rate",
+        "review_approval_rate",
         "explainability_rate",
         "style_diversity",
         "difficulty_spread",
@@ -197,6 +227,9 @@ def _markdown_report(summary: dict) -> str:
         f"- Path prerequisite score: {summary['mean_path_prerequisite_score']}",
         f"- Generation quality: {summary['mean_generation_quality']}",
         f"- Grounded generation rate: {summary['mean_grounded_generation_rate']}",
+        f"- Multi-format coverage rate: {summary['mean_multi_format_coverage_rate']}",
+        f"- Safe generation rate: {summary['mean_safe_generation_rate']}",
+        f"- Review approval rate: {summary['mean_review_approval_rate']}",
         f"- Explainability rate: {summary['mean_explainability_rate']}",
         f"- Model: {summary['model_meta']['model_type']}",
     ]

@@ -9,6 +9,7 @@ from urllib import error, request
 
 from ..config import DOTENV_CANDIDATES, LLMSettings
 from ..domain.models import LearningStep, StudentProfile
+from .safety import ContentSafetyGuard, SafetyReview
 
 
 class LLMClient(Protocol):
@@ -104,8 +105,13 @@ class QwenMaxClient:
 
 
 class ContentGenerator:
-    def __init__(self, llm_client: LLMClient | None = None) -> None:
+    def __init__(
+        self,
+        llm_client: LLMClient | None = None,
+        safety_guard: ContentSafetyGuard | None = None,
+    ) -> None:
         self.llm_client = llm_client or QwenMaxClient.from_env() or TemplateLLMClient()
+        self.safety_guard = safety_guard or ContentSafetyGuard()
 
     def generate_study_card(
         self,
@@ -113,12 +119,21 @@ class ContentGenerator:
         step: LearningStep,
         contexts: list[dict] | None = None,
     ) -> dict[str, str | list[dict] | dict]:
-        contexts = contexts or []
+        contexts, context_review = self.safety_guard.sanitize_contexts(contexts or [])
+        prompt_inputs, profile_review = self.safety_guard.sanitize_payload(
+            {
+                "goals": profile.goals,
+                "weak_points": profile.weak_points,
+                "knowledge_point": step.knowledge_point,
+                "resources": [recommendation.resource.title for recommendation in step.resources],
+            }
+        )
+        input_review = self._combine_reviews(context_review, profile_review)
         fallback = self._fallback_card(profile, step, contexts)
         if isinstance(self.llm_client, TemplateLLMClient):
-            return fallback
+            return self._finalize_card(fallback, input_review)
 
-        prompt = self._build_prompt(profile, step, contexts)
+        prompt = self._build_prompt(profile, step, contexts, prompt_inputs)
 
         try:
             generated = self.llm_client.generate(prompt)
@@ -126,9 +141,10 @@ class ContentGenerator:
         except Exception as exc:  # pragma: no cover - protects offline demos.
             fallback["generation_meta"] = {
                 "provider": "template",
+                "fallback_used": True,
                 "fallback_reason": str(exc),
             }
-            return fallback
+            return self._finalize_card(fallback, input_review)
 
         merged = {**fallback, **parsed}
         merged["rag_context"] = contexts
@@ -137,7 +153,62 @@ class ContentGenerator:
             "provider": self.llm_client.model if isinstance(self.llm_client, QwenMaxClient) else "custom",
             "fallback_used": False,
         }
-        return merged
+        return self._finalize_card(merged, input_review)
+
+    def repair_study_card(
+        self,
+        profile: StudentProfile,
+        step: LearningStep,
+        card: dict,
+        contexts: list[dict],
+        issues: list[str],
+    ) -> dict:
+        """Deterministically repair a rejected generation without another model call."""
+        safe_contexts, input_review = self.safety_guard.sanitize_contexts(contexts)
+        fallback = self._fallback_card(profile, step, safe_contexts)
+        required = (
+            "title",
+            "explanation",
+            "example",
+            "practice",
+            "answer",
+            "mistake_analysis",
+            "review_tip",
+            "difficulty_reason",
+        )
+        repaired = dict(card)
+        for field in required:
+            if not repaired.get(field):
+                repaired[field] = fallback[field]
+        repaired["rag_context"] = safe_contexts
+        repaired["evidence_refs"] = self._sanitize_evidence_refs(repaired.get("evidence_refs"), safe_contexts)
+        prior_meta = repaired.get("generation_meta") if isinstance(repaired.get("generation_meta"), dict) else {}
+        repaired["generation_meta"] = {
+            **prior_meta,
+            "repair_applied": True,
+            "repair_strategy": "deterministic-grounded-repair",
+            "repair_reasons": list(issues),
+        }
+        return self._finalize_card(repaired, input_review)
+
+    def _finalize_card(self, card: dict, input_review: SafetyReview) -> dict:
+        sanitized, output_review = self.safety_guard.sanitize_payload(card)
+        post_review = self.safety_guard.review_payload(sanitized)
+        sanitized["safety_meta"] = {
+            "safe": post_review.safe,
+            "input_violations": list(input_review.violations),
+            "output_violations": list(output_review.violations),
+            "redaction_count": input_review.redaction_count + output_review.redaction_count,
+        }
+        return sanitized
+
+    def _combine_reviews(self, *reviews: SafetyReview) -> SafetyReview:
+        violations = tuple(dict.fromkeys(item for review in reviews for item in review.violations))
+        return SafetyReview(
+            safe=not violations,
+            violations=violations,
+            redaction_count=sum(review.redaction_count for review in reviews),
+        )
 
     def _sanitize_evidence_refs(self, raw_refs, contexts: list[dict]) -> str:
         valid = [str(item["chunk_id"]) for item in contexts if item.get("chunk_id")]
@@ -152,18 +223,24 @@ class ContentGenerator:
         selected = [ref for ref in requested if ref in set(valid)]
         return "、".join(selected or valid)
 
-    def _build_prompt(self, profile: StudentProfile, step: LearningStep, contexts: list[dict]) -> str:
-        resources = "、".join(rec.resource.title for rec in step.resources) or "暂无匹配资源"
+    def _build_prompt(
+        self,
+        profile: StudentProfile,
+        step: LearningStep,
+        contexts: list[dict],
+        prompt_inputs: dict,
+    ) -> str:
+        resources = "、".join(prompt_inputs["resources"]) or "暂无匹配资源"
         evidence = "\n".join(f"- {item['title']}：{item['snippet']}" for item in contexts) or "- 使用系统内置课程资源。"
-        weak_points = "、".join(profile.weak_points[:5]) or "暂无明显薄弱点"
-        goals = "、".join(profile.goals) or "完成当前学习阶段"
+        weak_points = "、".join(prompt_inputs["weak_points"][:5]) or "暂无明显薄弱点"
+        goals = "、".join(prompt_inputs["goals"]) or "完成当前学习阶段"
+        knowledge_point = prompt_inputs["knowledge_point"]
 
         return (
             "请为学生生成一张个性化学习卡，返回 JSON 对象，字段必须包含："
             "title, explanation, example, practice, answer, mistake_analysis, review_tip, evidence_refs, difficulty_reason。"
-            f"\n学生ID：{profile.student_id}"
             f"\n学习目标：{goals}"
-            f"\n当前知识点：{step.knowledge_point}"
+            f"\n当前知识点：{knowledge_point}"
             f"\n目标掌握度：{step.target_mastery}"
             f"\n风险等级：{profile.risk_level}"
             f"\n薄弱点：{weak_points}"

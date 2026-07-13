@@ -83,6 +83,7 @@ class LearningMLPipeline:
                 for step in path
             ],
             "generated_cards": cards,
+            "generated_resources": [card["resource_bundle"] for card in cards if card.get("resource_bundle")],
             "retrieval_evidence": [context for card in cards for context in card.get("rag_context", [])],
             "generation_quality": self._generation_quality(cards),
             "model_meta": self.recommendation_agent.status(),
@@ -235,7 +236,24 @@ class LearningMLPipeline:
         if not cards:
             return {"mean_score": 0.0, "passed": False}
         scores = [card.get("quality_check", {}).get("score", 0.0) for card in cards]
-        return {"mean_score": round(sum(scores) / len(scores), 4), "passed": all(score >= 0.75 for score in scores)}
+        return {
+            "mean_score": round(sum(scores) / len(scores), 4),
+            "passed": all(card.get("quality_check", {}).get("passed", False) for card in cards),
+            "approved_count": sum(card.get("quality_check", {}).get("passed", False) for card in cards),
+            "repaired_count": sum(card.get("review_cycle", {}).get("repaired", False) for card in cards),
+            "multi_format_coverage": round(
+                sum(
+                    card.get("quality_check", {}).get("checks", {}).get("multi_format_complete", False)
+                    for card in cards
+                )
+                / len(cards),
+                4,
+            ),
+            "safe_generation_rate": round(
+                sum(card.get("quality_check", {}).get("checks", {}).get("safe", False) for card in cards) / len(cards),
+                4,
+            ),
+        }
 
     def _counterfactuals(self, profile, recommendations) -> list[dict]:
         explanations = []

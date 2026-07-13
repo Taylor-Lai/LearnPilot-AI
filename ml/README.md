@@ -1,6 +1,6 @@
 # LearnPilot ML
 
-LearnPilot 的机器学习服务，实现 A3 赛题中的学习诊断、学生画像、资源排序、学习路径、RAG 内容生成、多轮辅导和学习效果反馈。
+LearnPilot 的机器学习服务，实现 A3 赛题中的学习诊断、学生画像、资源排序、学习路径、多形态 RAG 内容生成、多轮辅导和学习效果反馈。
 
 ## 分层
 
@@ -8,9 +8,9 @@ LearnPilot 的机器学习服务，实现 A3 赛题中的学习诊断、学生�
 ml/
 ├─ src/ml_service/
 │  ├─ api/                 FastAPI 应用和请求契约
-│  ├─ application/         学习闭环与 Agent 编排
+│  ├─ application/         学习闭环、Agent 编排和多形态资源构建
 │  ├─ domain/              领域模型和诊断逻辑
-│  ├─ infrastructure/      LightGBM、RAG 和 Qwen 适配器
+│  ├─ infrastructure/      LightGBM、RAG、内容安全和 Qwen 适配器
 │  ├─ datasets/            内置资源、演示和合成数据
 │  ├─ training/            防泄漏训练工作流
 │  └─ evaluation/          离线评估与报告
@@ -57,7 +57,7 @@ learnpilot-ml-api
 | POST | `/assessment/diagnose` | 原始题目作答诊断 |
 | POST | `/recommend` | 画像、推荐、路径和学习卡闭环 |
 | POST | `/path` | 基于知识图谱规划路径 |
-| POST | `/generate` | 生成带 RAG 证据的学习内容 |
+| POST | `/generate` | 生成带 RAG 证据、审核轨迹和多形态资源包的学习内容 |
 | POST | `/feedback` | 根据学习反馈更新闭环 |
 | POST | `/student/update-profile` | 更新学生画像 |
 | POST | `/tutor/ask` | 多轮、有据、分层智能辅导 |
@@ -76,7 +76,19 @@ LEARNPILOT_LLM_MODE=template
 learnpilot-ml-qwen-check
 ```
 
-生成内容必须引用实际召回的资源切片；引用不合法时会被过滤并由确定性模板兜底。
+生成内容必须引用实际召回的资源切片；引用不合法时会被过滤。每组内容会经过教学完整性、引用、安全、隐私和多形态覆盖审核，不通过时执行确定性修复并复审。
+
+每张学习卡的 `resource_bundle` 提供七种可直接渲染或继续导出的资源：
+
+- Markdown 讲义
+- 网页幻灯片及逐页结构
+- SVG 与 Mermaid 思维导图
+- 带答案和评分规则的题库
+- 视频分镜、字幕 SRT 和无障碍文本稿
+- 实验指导书
+- 项目任务书
+
+课程内容、学生问题和对话历史均按不可信输入处理。系统会识别提示注入，并脱敏手机号、邮箱、证件号、API Key 和访问令牌。
 
 ## 测试
 
