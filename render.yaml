@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: learnpilot-ml
+    runtime: python
+    rootDir: ml
+    buildCommand: pip install -e . && learnpilot-ml-generate && learnpilot-ml-train
+    startCommand: learnpilot-ml-api
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: LEARNPILOT_LLM_MODE
+        value: auto
+      - key: DASHSCOPE_API_KEY
+        sync: false
+
+  - type: web
+    name: learnpilot-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -e . && python scripts/init_sqlite_demo.py
+    startCommand: learnpilot-backend
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DATABASE_MODE
+        value: sqlite
+      - key: SQLITE_DATABASE_URL
+        value: sqlite:///./learnpilot.db
+      - key: USE_ML_SERVICE
+        value: true
+      - key: ML_SERVICE_URL
+        fromService:
+          type: web
+          name: learnpilot-ml
+          property: hostport
+      - key: LEARNPILOT_LLM_MODE
+        value: auto
+      - key: DASHSCOPE_API_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "*"

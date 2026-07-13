@@ -3,19 +3,10 @@ import time
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from backend.app.api.routes import router
-from backend.app.api.admin import router as admin_router
-from backend.app.api.auth import router as auth_router
-from backend.app.api.profile_builder import router as profile_builder_router
-from backend.app.api.profile import router as profile_router
-from backend.app.api.producer import router as producer_router
-from backend.app.api.path import router as path_router
-from backend.app.api.ml import router as ml_router
-from backend.app.api.resources import router as resources_router
-from backend.app.api.user import router as user_router
+from backend.app.api.router import api_router
 from backend.app.core.config import get_settings
 from backend.app.core.database import (
     Base,
@@ -47,16 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router)
-app.include_router(auth_router)
-app.include_router(user_router)
-app.include_router(admin_router)
-app.include_router(resources_router)
-app.include_router(profile_builder_router)
-app.include_router(producer_router)
-app.include_router(profile_router)
-app.include_router(path_router)
-app.include_router(ml_router)
+app.include_router(api_router)
 
 try:
     Base.metadata.create_all(bind=engine)
@@ -90,7 +72,11 @@ async def add_request_context(request: Request, call_next):
     return response
 
 
-if __name__ == "__main__":
+def run() -> None:
     import uvicorn
 
-    uvicorn.run("backend.app.main:app", host="127.0.0.1", port=settings.app_port, reload=True)
+    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=settings.app_port)
+
+
+if __name__ == "__main__":
+    run()

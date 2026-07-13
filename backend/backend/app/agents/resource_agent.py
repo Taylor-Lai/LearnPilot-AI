@@ -1,11 +1,11 @@
-from backend.app.adapters.llm_adapter import MockLLMAdapter
+from backend.app.adapters.llm_adapter import LLMAdapter
 
 
 class ResourceAgent:
     name = "ResourceAgent"
 
-    def __init__(self, llm: MockLLMAdapter | None = None) -> None:
-        self.llm = llm or MockLLMAdapter()
+    def __init__(self, llm: LLMAdapter | None = None) -> None:
+        self.llm = llm or LLMAdapter()
 
     def run(self, topic: str, weak_points: list[str], resource_types: list[str]) -> list[dict]:
         return [

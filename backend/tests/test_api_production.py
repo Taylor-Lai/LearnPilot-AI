@@ -16,11 +16,10 @@ os.environ.setdefault("SQLITE_DATABASE_URL", "sqlite://")
 os.environ.setdefault("USE_ML_SERVICE", "false")
 os.environ.setdefault("LEARNPILOT_LLM_MODE", "template")
 
-from fastapi.testclient import TestClient
-
 from backend.app.core.database import Base, get_db
 from backend.app.main import app
 from backend.app.models import Course, KnowledgePoint
+from fastapi.testclient import TestClient
 
 
 class ProductionApiTest(unittest.TestCase):

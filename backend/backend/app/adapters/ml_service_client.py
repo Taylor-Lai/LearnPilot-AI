@@ -15,7 +15,8 @@ class MLServiceUnavailable(RuntimeError):
 class MLServiceClient:
     def __init__(self, base_url: str | None = None, timeout: float | None = None) -> None:
         settings = get_settings()
-        self.base_url = (base_url or settings.ml_service_url).rstrip("/")
+        resolved_url = (base_url or settings.ml_service_url).rstrip("/")
+        self.base_url = resolved_url if "://" in resolved_url else f"http://{resolved_url}"
         self.enabled = settings.use_ml_service
         self.timeout = timeout if timeout is not None else settings.ml_service_timeout_seconds
 

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learnpilot-ml"
+version = "2.0.0"
+description = "Personalized learning diagnosis, ranking, RAG generation, and tutoring service"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "uvicorn[standard]>=0.34,<1.0",
+  "pydantic>=2.10,<3.0",
+  "httpx>=0.28,<1.0",
+  "python-dotenv>=1.0,<2.0",
+  "numpy>=1.26,<3.0",
+  "pandas>=2.2,<3.0",
+  "scikit-learn>=1.5,<2.0",
+  "joblib>=1.4,<2.0",
+  "lightgbm>=4.3,<5.0",
+]
+
+[project.scripts]
+learnpilot-ml-api = "ml_service.cli:serve"
+learnpilot-ml-generate = "ml_service.cli:generate"
+learnpilot-ml-train = "ml_service.cli:train"
+learnpilot-ml-evaluate = "ml_service.cli:evaluate"
+learnpilot-ml-demo = "ml_service.cli:demo"
+learnpilot-ml-qwen-check = "ml_service.cli:check_qwen"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -7,11 +7,10 @@ from urllib import error, request
 
 from backend.app.core.config import get_settings
 
-
 logger = logging.getLogger(__name__)
 
 
-class MockLLMAdapter:
+class LLMAdapter:
     """DashScope Qwen adapter with deterministic template fallback."""
 
     def __init__(self) -> None:
@@ -36,7 +35,7 @@ class MockLLMAdapter:
         payload = {
             "model": "qwen-plus",
             "messages": [
-                {"role": "system", "content": "你是 LearnPilot-AI 教学智能体，请严格返回 JSON。"},
+                {"role": "system", "content": "你是 LearnPilot AI 教学智能体，请严格返回 JSON。"},
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0.35,
@@ -155,7 +154,7 @@ class MockLLMAdapter:
         evidence_block = "\n".join(self._format_evidence_line(item) for item in evidence_items) or "（无可靠检索证据）"
 
         return (
-            "你是 LearnPilot-AI 智能辅导老师。请根据学生画像、最近对话和检索证据，用适合学生当前水平的中文回答问题。\n"
+            "你是 LearnPilot AI 智能辅导老师。请根据学生画像、最近对话和检索证据，用适合学生当前水平的中文回答问题。\n"
             "要求：\n"
             "1. 先直接回答问题，再给例子或简要推导。\n"
             "2. 回答可使用 Markdown（标题、列表、代码块）。\n"
@@ -189,7 +188,9 @@ class MockLLMAdapter:
 
         evidence_items = list(evidence or [])[:5]
         evidence_lines = [self._format_evidence_line(item) for item in evidence_items]
-        evidence_section = "\n".join(evidence_lines) if evidence_lines else "暂无可靠课程检索证据，以下回答基于通用教学逻辑。"
+        evidence_section = (
+            "\n".join(evidence_lines) if evidence_lines else "暂无可靠课程检索证据，以下回答基于通用教学逻辑。"
+        )
 
         history_hint = ""
         if history:

@@ -16,7 +16,6 @@ from backend.app.models import (
     User,
 )
 
-
 router = APIRouter(prefix="/profile-builder", tags=["profile-builder"])
 
 QUESTIONS = (
@@ -39,11 +38,7 @@ class ProfileBuilderRegenerateRequest(BaseModel):
 
 
 def _get_session(db: Session, session_id: str) -> ProfileBuilderSession:
-    session = (
-        db.query(ProfileBuilderSession)
-        .filter(ProfileBuilderSession.session_id == session_id)
-        .first()
-    )
+    session = db.query(ProfileBuilderSession).filter(ProfileBuilderSession.session_id == session_id).first()
     if session is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile builder session not found")
     return session
@@ -73,9 +68,7 @@ def _first_match(text: str, patterns: tuple[str, ...], fallback: str) -> str:
 def _extract_major(introduction: str) -> str:
     major = _first_match(
         introduction,
-        (
-            r"(?:我是|我读|就读于?|专业是|专业为|学的是)?\s*([^，,。；;\s]{2,24}?)专业",
-        ),
+        (r"(?:我是|我读|就读于?|专业是|专业为|学的是)?\s*([^，,。；;\s]{2,24}?)专业",),
         "",
     )
     return re.sub(r"^(?:我是|我读|就读于?)", "", major).strip()

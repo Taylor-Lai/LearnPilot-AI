@@ -1,3 +1,10 @@
+x-backend-image: &backend-image
+  image: learnpilot-backend:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: backend
+
 services:
   mysql:
     image: mysql:8.4
@@ -19,9 +26,11 @@ services:
       - "6379:6379"
 
   ml-service:
+    image: learnpilot-ml:local
     build:
       context: .
-      dockerfile: Dockerfile.ml
+      dockerfile: Dockerfile
+      target: ml
     environment:
       LEARNPILOT_LLM_MODE: ${LEARNPILOT_LLM_MODE:-template}
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
@@ -29,9 +38,7 @@ services:
       - "8000:8000"
 
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
+    <<: *backend-image
     depends_on:
       - mysql
       - redis
@@ -53,9 +60,8 @@ services:
       - "8001:8001"
 
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
+    <<: *backend-image
+    command: ["rq", "worker", "--url", "redis://redis:6379/0", "default"]
     depends_on:
       - redis
       - mysql

@@ -14,7 +14,6 @@ from backend.app.core.database import get_db
 from backend.app.core.security import optional_user
 from backend.app.models import MLProfileAnswer, User
 
-
 router = APIRouter(prefix="/api/ml", tags=["ml"])
 
 
@@ -244,10 +243,7 @@ def _engagement_dashboard(answer: str) -> list[dict]:
 
 def _forgetting_risk(answer: str) -> list[dict]:
     values = {"算法": 50, "CNN": 70, "反向传播": 75, "模型训练流程": 65}
-    return [
-        {"name": item, "value": values.get(item, 60)}
-        for item in _split_weak_points(answer)
-    ]
+    return [{"name": item, "value": values.get(item, 60)} for item in _split_weak_points(answer)]
 
 
 def _feedback_dashboard(answer: str) -> dict:
@@ -269,9 +265,11 @@ def _dashboard_from_answers(profile: dict, answers: list[AnswerItem]) -> dict:
     preference_text = profile.get("preference") or answer_map.get("preference", "")
     preferences = _preference_items(preference_text)
     forgetting = answer_map.get("forgetting", "")
-    forgetting_risk = _forgetting_risk(forgetting) if forgetting else [
-        {"name": item["name"], "value": item["risk"]} for item in _weak_point_risks(weak_points[:2])
-    ]
+    forgetting_risk = (
+        _forgetting_risk(forgetting)
+        if forgetting
+        else [{"name": item["name"], "value": item["risk"]} for item in _weak_point_risks(weak_points[:2])]
+    )
     feedback = _feedback_dashboard(answer_map.get("feedback", ""))
     cognition_main = profile.get("cognitive_style") or ("综合型" if len(preferences) >= 2 else "循序渐进型")
     if cognition_main == "循序渐进型" and len(preferences) >= 2 and not answer_map.get("style"):

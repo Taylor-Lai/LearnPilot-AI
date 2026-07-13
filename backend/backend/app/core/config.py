@@ -5,14 +5,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = Field(default="Learning Agent Backend", alias="APP_NAME")
+    app_name: str = Field(default="LearnPilot Backend", alias="APP_NAME")
     app_env: str = Field(default="development", alias="APP_ENV")
     app_debug: bool = Field(default=True, alias="APP_DEBUG")
     app_port: int = Field(default=8001, alias="APP_PORT")
 
     database_mode: str = Field(default="mysql", alias="DATABASE_MODE")
     postgres_database_url: str | None = Field(default=None, alias="DATABASE_URL")
-    sqlite_database_url: str = Field(default="sqlite:///./learning_agent_demo.db", alias="SQLITE_DATABASE_URL")
+    sqlite_database_url: str = Field(default="sqlite:///./learnpilot.db", alias="SQLITE_DATABASE_URL")
 
     mysql_host: str = Field(default="127.0.0.1", alias="MYSQL_HOST")
     mysql_port: int = Field(default=3306, alias="MYSQL_PORT")

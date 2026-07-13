@@ -67,9 +67,7 @@ def ensure_user_columns() -> None:
         for column_name, column_type in columns.items():
             if column_name not in column_names:
                 quoted_column = f"{quote}{column_name}{quote}"
-                connection.execute(
-                    text(f"ALTER TABLE {table_name} ADD COLUMN {quoted_column} {column_type}")
-                )
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {quoted_column} {column_type}"))
         if dialect in {"mysql", "postgresql"}:
             username_indexes = {
                 index["name"]
@@ -87,9 +85,7 @@ def ensure_user_columns() -> None:
                 if dialect == "mysql":
                     connection.execute(text(f"ALTER TABLE {table_name} DROP INDEX {quoted_constraint}"))
                 else:
-                    connection.execute(
-                        text(f"ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {quoted_constraint}")
-                    )
+                    connection.execute(text(f"ALTER TABLE {table_name} DROP CONSTRAINT IF EXISTS {quoted_constraint}"))
 
             for index_name in username_indexes - username_constraints:
                 quoted_index = f"{quote}{index_name}{quote}"
@@ -118,9 +114,7 @@ def ensure_student_profile_columns() -> None:
     with engine.begin() as connection:
         for column_name, column_type in columns.items():
             if column_name not in column_names:
-                connection.execute(
-                    text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
-                )
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"))
 
 
 def ensure_course_resource_columns() -> None:
@@ -143,9 +137,7 @@ def ensure_course_resource_columns() -> None:
         for column_name, column_type in columns.items():
             if column_name not in column_names:
                 quoted_column = f"{quote}{column_name}{quote}"
-                connection.execute(
-                    text(f"ALTER TABLE {table_name} ADD COLUMN {quoted_column} {column_type}")
-                )
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {quoted_column} {column_type}"))
 
 
 def ensure_resource_center_columns() -> None:
@@ -169,9 +161,7 @@ def ensure_resource_center_columns() -> None:
         for column_name, column_type in columns.items():
             if column_name not in column_names:
                 quoted_column = f"{quote}{column_name}{quote}"
-                connection.execute(
-                    text(f"ALTER TABLE {table_name} ADD COLUMN {quoted_column} {column_type}")
-                )
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {quoted_column} {column_type}"))
 
 
 def ensure_producer_columns() -> None:
@@ -220,9 +210,7 @@ def ensure_producer_columns() -> None:
             for column_name, column_type in columns.items():
                 if column_name not in existing:
                     quoted_column = f"{quote}{column_name}{quote}"
-                    connection.execute(
-                        text(f"ALTER TABLE {quoted_table} ADD COLUMN {quoted_column} {column_type}")
-                    )
+                    connection.execute(text(f"ALTER TABLE {quoted_table} ADD COLUMN {quoted_column} {column_type}"))
 
 
 def ensure_learning_path_columns() -> None:
@@ -249,9 +237,7 @@ def ensure_learning_path_columns() -> None:
             for column_name, column_type in columns.items():
                 if column_name not in existing:
                     quoted_column = f"{quote}{column_name}{quote}"
-                    connection.execute(
-                        text(f"ALTER TABLE {quoted_table} ADD COLUMN {quoted_column} {column_type}")
-                    )
+                    connection.execute(text(f"ALTER TABLE {quoted_table} ADD COLUMN {quoted_column} {column_type}"))
 
 
 def ensure_ml_profile_answer_columns() -> None:
@@ -275,6 +261,4 @@ def ensure_ml_profile_answer_columns() -> None:
         for column_name, column_type in columns.items():
             if column_name not in existing:
                 quoted_column = f"{quote}{column_name}{quote}"
-                connection.execute(
-                    text(f"ALTER TABLE {table_name} ADD COLUMN {quoted_column} {column_type}")
-                )
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {quoted_column} {column_type}"))

@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from backend.app.adapters.ml_service_client import MLServiceClient, MLServiceUnavailable
 from backend.app.models import Course, CourseResource, FeedbackEvent, KnowledgePoint, StudentProfile, StudentWeakness
 
-
 STYLE_MAP = {
     "lecture": "video",
     "video_script": "video",
@@ -28,7 +27,7 @@ DEFAULT_STYLES = ["example", "quiz", "text"]
 
 
 class MLAdapter:
-    """Bridge backend database state to the LearnPilot-AI ML HTTP service."""
+    """Bridge backend database state to the LearnPilot AI ML HTTP service."""
 
     def __init__(self, client: MLServiceClient | None = None) -> None:
         self.client = client or MLServiceClient()
@@ -50,10 +49,7 @@ class MLAdapter:
         if not diagnostics:
             diagnostics = self._diagnostics_from_requirement(requirement, knowledge_points)
 
-        previous_mastery = {
-            point: round(max(0.0, min(1.0, score)), 4)
-            for point, score in diagnostics.items()
-        }
+        previous_mastery = {point: round(max(0.0, min(1.0, score)), 4) for point, score in diagnostics.items()}
         goals = [requirement]
         if profile and profile.goal and profile.goal not in goals:
             goals.append(profile.goal)
@@ -107,9 +103,16 @@ class MLAdapter:
         normalized = dict(result)
         profile = normalized.get("profile") if isinstance(normalized.get("profile"), dict) else {}
         if profile:
-            profile.setdefault("goal", "; ".join(profile.get("goals", [])) if isinstance(profile.get("goals"), list) else None)
+            profile.setdefault(
+                "goal", "; ".join(profile.get("goals", [])) if isinstance(profile.get("goals"), list) else None
+            )
             profile.setdefault("course", None)
-            profile.setdefault("preference", ", ".join(profile.get("preferred_styles", [])) if isinstance(profile.get("preferred_styles"), list) else None)
+            profile.setdefault(
+                "preference",
+                ", ".join(profile.get("preferred_styles", []))
+                if isinstance(profile.get("preferred_styles"), list)
+                else None,
+            )
             profile.setdefault("knowledge_level", profile.get("learning_stage"))
             normalized["profile"] = profile
 
@@ -293,11 +296,12 @@ class MLAdapter:
 
     def _diagnostics_from_weaknesses(self, weaknesses: list[StudentWeakness]) -> dict[str, float]:
         return {
-            item.knowledge_point: round(max(0.0, min(1.0, 1.0 - float(item.weakness_level))), 4)
-            for item in weaknesses
+            item.knowledge_point: round(max(0.0, min(1.0, 1.0 - float(item.weakness_level))), 4) for item in weaknesses
         }
 
-    def _diagnostics_from_requirement(self, requirement: str, knowledge_points: list[KnowledgePoint]) -> dict[str, float]:
+    def _diagnostics_from_requirement(
+        self, requirement: str, knowledge_points: list[KnowledgePoint]
+    ) -> dict[str, float]:
         diagnostics = {}
         for point in knowledge_points:
             diagnostics[point.name] = 0.35 if point.name and point.name in requirement else 0.62
@@ -414,7 +418,9 @@ class MLAdapter:
             score = score / 100
         return {
             "mastery_score": round(max(0.0, min(1.0, score)), 2),
-            "feedback": str(data.get("feedback") or data.get("message") or data.get("summary") or "ML service feedback"),
+            "feedback": str(
+                data.get("feedback") or data.get("message") or data.get("summary") or "ML service feedback"
+            ),
             "profile_update": data.get("profile_update") or data.get("updated_profile") or {},
         }
 
@@ -458,6 +464,3 @@ class MLAdapter:
             "exercise": 30,
             "code_example": 40,
         }.get(resource_type, 25)
-
-
-MockMLAdapter = MLAdapter

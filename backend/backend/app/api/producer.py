@@ -20,7 +20,6 @@ from backend.app.models import (
     User,
 )
 
-
 router = APIRouter(prefix="/producer", tags=["producer"])
 
 DEFAULT_TYPES = ["lecture", "mind_map", "exercise", "video", "code", "dataset", "roadmap"]
@@ -190,7 +189,7 @@ def _code_items(topic: str, language: str) -> list[dict]:
         code = (
             f'const topic = "{topic}";\n'
             'const steps = ["明确输入输出", "理解核心原理", "完成最小案例", "复盘结果"];\n'
-            'console.log({ topic, steps });\n'
+            "console.log({ topic, steps });\n"
         )
         language_name = "javascript"
     else:
@@ -301,8 +300,7 @@ def _normalize_types(types: list[str]) -> list[str]:
 
 def _build_task_result(db: Session, topic: str, requirement: str, requested_types: list[str]) -> dict:
     references = [
-        _resource_reference(item)
-        for item in _matching_resources(db, topic, ["document", "ppt", "video"], limit=8)
+        _resource_reference(item) for item in _matching_resources(db, topic, ["document", "ppt", "video"], limit=8)
     ]
     result = {
         "topic": topic,

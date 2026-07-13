@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from backend.app.core.database import get_db
 from backend.app.models import ResourceCenter
 
-
 router = APIRouter(prefix="/resources", tags=["resources"])
 
 

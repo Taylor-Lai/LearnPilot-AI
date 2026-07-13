@@ -4,13 +4,12 @@ import os
 import sys
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 os.environ.setdefault("DATABASE_MODE", "sqlite")
-os.environ.setdefault("SQLITE_DATABASE_URL", "sqlite:///./learning_agent_demo.db")
+os.environ.setdefault("SQLITE_DATABASE_URL", "sqlite:///./learnpilot.db")
 os.environ.setdefault("USE_ML_SERVICE", "false")
 
 from backend.app import models as _models  # noqa: F401
@@ -27,7 +26,6 @@ from backend.app.core.database import (
     ensure_user_columns,
 )
 from backend.app.models import Course, CourseResource, KnowledgePoint, User
-
 
 COURSES = [
     {
@@ -81,17 +79,80 @@ KNOWLEDGE_POINTS = [
 ]
 
 COURSE_RESOURCES = [
-    (1, 1, 1, "CNN 基础讲义", "lecture", "学习目标：理解卷积、池化、特征图。核心概念：卷积核、步幅、填充。例题：计算卷积输出尺寸。"),
-    (2, 1, 1, "CNN 练习题", "exercise", "选择题：卷积核的作用是什么？填空题：池化常用于降低____。简答题：说明 CNN 的局部连接。代码题：搭建最小 CNN。"),
-    (3, 1, 1, "CNN 思维导图", "mind_map", "CNN\n- 基础概念\n  - 卷积核\n  - 特征图\n- 核心流程\n  - 卷积\n  - 激活\n  - 池化"),
-    (4, 1, 2, "反向传播讲义", "lecture", "学习目标：理解链式法则。核心概念：损失函数、梯度、学习率。关键流程：前向计算、反向求导、参数更新。"),
-    (5, 1, 2, "反向传播例题", "exercise", "例题：y=wx，L=(y-t)^2，求 dL/dw。解析：dL/dw=2(wx-t)x。复习建议：手算一次单参数梯度。"),
-    (6, 2, 3, "决策树案例", "code_example", "使用 sklearn DecisionTreeClassifier 完成分类案例，观察 max_depth 对过拟合的影响。"),
+    (
+        1,
+        1,
+        1,
+        "CNN 基础讲义",
+        "lecture",
+        "学习目标：理解卷积、池化、特征图。核心概念：卷积核、步幅、填充。例题：计算卷积输出尺寸。",
+    ),
+    (
+        2,
+        1,
+        1,
+        "CNN 练习题",
+        "exercise",
+        "选择题：卷积核的作用是什么？填空题：池化常用于降低____。简答题：说明 CNN 的局部连接。代码题：搭建最小 CNN。",
+    ),
+    (
+        3,
+        1,
+        1,
+        "CNN 思维导图",
+        "mind_map",
+        "CNN\n- 基础概念\n  - 卷积核\n  - 特征图\n- 核心流程\n  - 卷积\n  - 激活\n  - 池化",
+    ),
+    (
+        4,
+        1,
+        2,
+        "反向传播讲义",
+        "lecture",
+        "学习目标：理解链式法则。核心概念：损失函数、梯度、学习率。关键流程：前向计算、反向求导、参数更新。",
+    ),
+    (
+        5,
+        1,
+        2,
+        "反向传播例题",
+        "exercise",
+        "例题：y=wx，L=(y-t)^2，求 dL/dw。解析：dL/dw=2(wx-t)x。复习建议：手算一次单参数梯度。",
+    ),
+    (
+        6,
+        2,
+        3,
+        "决策树案例",
+        "code_example",
+        "使用 sklearn DecisionTreeClassifier 完成分类案例，观察 max_depth 对过拟合的影响。",
+    ),
     (7, 2, 3, "决策树讲义", "lecture", "核心原理：信息增益、基尼指数、递归划分。常见误区：树越深不一定越好。"),
     (8, 2, 4, "支持向量机讲义", "lecture", "学习目标：理解最大间隔。核心概念：支持向量、超平面、核函数、软间隔。"),
-    (9, 2, 4, "SVM 练习题", "exercise", "选择题：支持向量决定什么？简答题：解释 C 参数。代码题：用 SVC 训练线性分类器。"),
-    (10, 2, 5, "聚类算法拓展阅读", "reading", "拓展阅读主题：K-Means、DBSCAN、层次聚类。推荐关键词：无监督学习、距离度量、轮廓系数。"),
-    (11, 2, 5, "聚类算法代码案例", "code_example", "Python 示例：使用 KMeans(n_clusters=2) 对二维样本聚类，并输出 labels 与 cluster_centers_。"),
+    (
+        9,
+        2,
+        4,
+        "SVM 练习题",
+        "exercise",
+        "选择题：支持向量决定什么？简答题：解释 C 参数。代码题：用 SVC 训练线性分类器。",
+    ),
+    (
+        10,
+        2,
+        5,
+        "聚类算法拓展阅读",
+        "reading",
+        "拓展阅读主题：K-Means、DBSCAN、层次聚类。推荐关键词：无监督学习、距离度量、轮廓系数。",
+    ),
+    (
+        11,
+        2,
+        5,
+        "聚类算法代码案例",
+        "code_example",
+        "Python 示例：使用 KMeans(n_clusters=2) 对二维样本聚类，并输出 labels 与 cluster_centers_。",
+    ),
 ]
 
 

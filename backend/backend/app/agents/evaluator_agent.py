@@ -1,11 +1,11 @@
-from backend.app.adapters.ml_adapter import MockMLAdapter
+from backend.app.adapters.ml_adapter import MLAdapter
 
 
 class EvaluatorAgent:
     name = "EvaluatorAgent"
 
-    def __init__(self, ml: MockMLAdapter | None = None) -> None:
-        self.ml = ml or MockMLAdapter()
+    def __init__(self, ml: MLAdapter | None = None) -> None:
+        self.ml = ml or MLAdapter()
 
     def run(
         self,

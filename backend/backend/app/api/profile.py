@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from backend.app.core.database import get_db
 from backend.app.models import StudentProfile, User
 
-
 router = APIRouter(prefix="/profile", tags=["profile"])
 
 
@@ -54,12 +53,7 @@ def profile_payload(profile: StudentProfile | None) -> dict:
 
 
 def latest_profile(db: Session, user_id: int) -> StudentProfile | None:
-    return (
-        db.query(StudentProfile)
-        .filter(StudentProfile.user_id == user_id)
-        .order_by(StudentProfile.id.desc())
-        .first()
-    )
+    return db.query(StudentProfile).filter(StudentProfile.user_id == user_id).order_by(StudentProfile.id.desc()).first()
 
 
 def upsert_profile(db: Session, user_id: int, values: dict) -> StudentProfile:

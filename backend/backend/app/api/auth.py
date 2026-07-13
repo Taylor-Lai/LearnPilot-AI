@@ -8,7 +8,6 @@ from backend.app.core.database import get_db
 from backend.app.core.security import create_access_token, get_current_user, hash_password, verify_password
 from backend.app.models import User
 
-
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
@@ -82,7 +81,11 @@ def register(payload: AuthCompatRegisterRequest, db: Session = Depends(get_db)) 
 def login(payload: AuthCompatLoginRequest, db: Session = Depends(get_db)) -> dict:
     email = _clean_email(payload.email)
     user = db.query(User).filter(User.email == email).first()
-    if user is None or (user.status or "active") == "deleted" or not verify_password(payload.password, user.password_hash):
+    if (
+        user is None
+        or (user.status or "active") == "deleted"
+        or not verify_password(payload.password, user.password_hash)
+    ):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
     return auth_payload(user)
 

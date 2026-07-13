@@ -16,7 +16,6 @@ from backend.app.core.config import get_settings
 from backend.app.core.database import get_db
 from backend.app.models import User
 
-
 ROLE_ORDER = {"student": 1, "teacher": 2, "admin": 3}
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -113,9 +112,11 @@ def optional_user(
 
 
 def _b64_json(data: dict) -> str:
-    return base64.urlsafe_b64encode(json.dumps(data, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).decode(
-        "ascii"
-    ).rstrip("=")
+    return (
+        base64.urlsafe_b64encode(json.dumps(data, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+        .decode("ascii")
+        .rstrip("=")
+    )
 
 
 def _b64_decode(data: str) -> bytes:

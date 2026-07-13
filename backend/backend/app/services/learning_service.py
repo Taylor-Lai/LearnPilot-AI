@@ -7,8 +7,8 @@ from backend.app.agents.diagnosis_agent import DiagnosisAgent
 from backend.app.agents.evaluator_agent import EvaluatorAgent
 from backend.app.agents.planner_agent import PlannerAgent
 from backend.app.agents.profile_agent import ProfileAgent
-from backend.app.agents.retriever_agent import RetrieverAgent
 from backend.app.agents.resource_agent import ResourceAgent
+from backend.app.agents.retriever_agent import RetrieverAgent
 from backend.app.agents.review_agent import ReviewAgent
 from backend.app.agents.tutor_agent import TutorAgent
 from backend.app.models import (
@@ -352,7 +352,7 @@ class LearningService:
                         profile_id=db_profile.id,
                         knowledge_point=str(point),
                         weakness_level=max(0.45, 0.85 - index * 0.08),
-                        evidence="LearnPilot-AI recommendation" if weak_points else "Local diagnosis",
+                        evidence="LearnPilot AI recommendation" if weak_points else "Local diagnosis",
                     )
                 )
 
@@ -379,7 +379,10 @@ class LearningService:
             "grade": profile.get("grade"),
             "course": profile.get("course") or profile.get("subject"),
             "goal": profile.get("goal") or profile.get("learning_goal"),
-            "weak_points": profile.get("weak_points") or profile.get("weaknesses") or profile.get("knowledge_gaps") or [],
+            "weak_points": profile.get("weak_points")
+            or profile.get("weaknesses")
+            or profile.get("knowledge_gaps")
+            or [],
             "preference": profile.get("preference") or profile.get("learning_preference"),
             "cognitive_style": profile.get("cognitive_style"),
             "knowledge_level": profile.get("knowledge_level") or profile.get("level"),
@@ -468,14 +471,10 @@ class LearningService:
     ) -> list[dict]:
         resources = list(ml_resources)
         existing_types = {
-            str(item.get("resource_type") or "").strip().lower()
-            for item in resources
-            if isinstance(item, dict)
+            str(item.get("resource_type") or "").strip().lower() for item in resources if isinstance(item, dict)
         }
         missing_types = [
-            resource_type
-            for resource_type in self.REQUIRED_RESOURCE_TYPES
-            if resource_type not in existing_types
+            resource_type for resource_type in self.REQUIRED_RESOURCE_TYPES if resource_type not in existing_types
         ]
         if not missing_types:
             return resources
@@ -683,9 +682,15 @@ class LearningService:
                         db_profile.mastery = result["profile_update"]["mastery"]
                     if isinstance(result["profile_update"].get("weak_points"), list):
                         db_profile.weak_points_json = result["profile_update"]["weak_points"]
-                    db_profile.learning_stage = result["profile_update"].get("learning_stage") or db_profile.learning_stage
-                    db_profile.engagement_score = result["profile_update"].get("engagement_score") or db_profile.engagement_score
-                    db_profile.forgetting_risk = result["profile_update"].get("forgetting_risk") or db_profile.forgetting_risk
+                    db_profile.learning_stage = (
+                        result["profile_update"].get("learning_stage") or db_profile.learning_stage
+                    )
+                    db_profile.engagement_score = (
+                        result["profile_update"].get("engagement_score") or db_profile.engagement_score
+                    )
+                    db_profile.forgetting_risk = (
+                        result["profile_update"].get("forgetting_risk") or db_profile.forgetting_risk
+                    )
                     db.add(db_profile)
 
             db.commit()

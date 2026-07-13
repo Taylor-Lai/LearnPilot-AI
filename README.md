@@ -1,313 +1,136 @@
-# LearnPilot-AI
+# LearnPilot AI
 
-LearnPilot-AI 是面向“中国软件杯”A3 赛题“基于大模型的个性化资源生成与学习多智能体系统开发”的原型项目。项目围绕学习诊断、学生画像、资源推荐、学习路径规划、RAG 个性化内容生成和学习反馈闭环，构建一个可解释、可演示、可继续扩展的智能学习服务。
+面向“中国软件杯”A3 赛题的个性化学习多智能体系统。项目将学习诊断、动态画像、资源推荐、学习路径规划、RAG 内容生成、智能辅导和学习效果反馈串成可解释的闭环。
 
-当前仓库包含主后端 `backend/` 与 ML 服务 `ml/` 两部分。前端调用主后端业务接口，主后端会把数据库中的课程、知识点、课程资源和学生历史画像转换为 ML 请求，再由 ML 服务完成推荐、路径规划、RAG 学习卡生成和质量评估。
+## 核心能力
 
-当前后端已加入生产化基础能力：JWT 认证与角色权限、课程资料/题库导入、资源切片与检索证据落库、学习反馈事件、细分健康检查、Redis/RQ 任务运行环境、Docker Compose 部署模板，以及 DashScope Qwen 真实生成入口。
-
-## 项目目标
-
-在传统在线学习系统中，学习资源往往以固定目录或人工标签组织，难以根据学生的真实掌握情况动态调整。LearnPilot-AI 的目标是利用大模型和多智能体协作能力，把“测评诊断、学习画像、资源匹配、路径规划、内容生成、反馈更新”串成闭环，为不同基础、目标和偏好的学生生成个性化学习方案。
-
-系统重点解决以下问题：
-
-- 如何根据测评结果和学习行为识别知识薄弱点。
-- 如何把学生目标、学习偏好、行为反馈融合为动态学习画像。
-- 如何从资源库中推荐难度合适、形式匹配、覆盖薄弱点的学习资源。
-- 如何基于知识图谱和先修关系规划阶段化学习路径。
-- 如何通过 RAG 生成个性化讲解、练习、错因分析和复习建议。
-- 如何在学生学习后更新画像，并重新调整推荐与路径。
-
-## 核心功能
-
-| 功能模块 | 说明 |
+| 能力 | 实现 |
 | --- | --- |
-| 学习诊断 | 输入知识点测评分数，归一化为掌握度，并识别薄弱点 |
-| 学生画像 | 融合诊断、学习目标、偏好、行为日志和历史状态，生成动态画像 |
-| 资源推荐 | 根据薄弱点匹配、难度匹配、学习形式偏好、资源质量和时长进行排序 |
-| 路径规划 | 基于知识图谱和先修关系，生成从基础到综合应用的学习路径 |
-| RAG 内容生成 | 检索相关课程资源证据，调用 qwen3.7-plus 或模板 fallback 生成学习卡片 |
-| 多智能体协作 | 输出诊断、画像、推荐、规划、生成与评估 Agent 的执行 trace |
-| 反馈闭环 | 根据学习反馈更新掌握度，展示反馈前后路径和画像变化 |
-| 离线评估 | 支持 Recall@K、NDCG@K 和掌握度提升示例评估 |
+| 学习诊断 | 根据题目难度、区分度、作答结果、用时、提示和置信度估计知识点掌握度 |
+| 动态画像 | 融合诊断、行为、偏好和历史状态，输出能力、节奏、风险和认知偏好 |
+| 个性化推荐 | LightGBM 排序结合薄弱度、难度适配、行为反馈、资源质量和知识图谱特征 |
+| 学习路径 | 按先修关系生成阶段化路径、学习时长、检查点和补救策略 |
+| RAG 生成 | 检索课程资源证据，生成带引用、练习、答案和错因分析的学习内容 |
+| 智能辅导 | 基于学生画像、课程证据和多轮上下文进行苏格拉底式引导 |
+| 反馈闭环 | 学习行为和测评结果回写画像，重新规划推荐与学习路径 |
+| 可验证性 | 防泄漏训练、分学生验证、离线指标、接口契约测试和双服务联调 |
 
-## 系统架构
-
-```text
-学生测评/行为日志/学习目标
-        |
-        v
-诊断 Agent
-  - 知识点掌握度
-  - 薄弱点识别
-        |
-        v
-画像 Agent
-  - 动态学生画像
-  - 风险等级
-  - 学习偏好
-        |
-        +--------------------+
-        |                    |
-        v                    v
-推荐 Agent              规划 Agent
-  - 资源排序              - 知识图谱
-  - 推荐理由              - 先修关系
-        |                    |
-        +----------+---------+
-                   |
-                   v
-生成与评估 Agent
-  - RAG 资源检索
-  - 个性化学习卡
-  - 内容质量检查
-                   |
-                   v
-学习反馈闭环
-  - 更新画像
-  - 调整推荐
-  - 重规划路径
-```
-
-## 技术实现
-
-当前版本以轻量、可解释的规则和数据结构实现核心闭环，便于比赛演示和后续接入真实大模型。
-
-- 后端接口：FastAPI
-- 核心语言：Python
-- 数据建模：dataclass + Pydantic
-- 推荐策略：可解释加权排序 + 多样性重排
-- 路径规划：知识图谱先修依赖 + 掌握度缺口排序
-- RAG 原型：资源内容切片 + BM25/TF-IDF 融合检索 + qwen3.7-plus 生成 + 质量检查
-- 测试方式：unittest
-
-推荐排序当前采用如下可解释公式：
+## 系统组成
 
 ```text
-score = 0.42 * 薄弱点匹配
-      + 0.24 * 难度匹配
-      + 0.14 * 形式偏好
-      + 0.14 * 资源质量
-      + 0.06 * 时长适配
+Frontend / Client
+        │
+        ▼
+LearnPilot Backend :8001
+  ├─ 用户、课程、题库、资源和学习记录
+  ├─ 多智能体业务编排
+  └─ 数据持久化与权限控制
+        │ HTTP
+        ▼
+LearnPilot ML :8000
+  ├─ 诊断与学生画像
+  ├─ 排序推荐与学习路径
+  ├─ RAG 内容生成与智能辅导
+  └─ 训练、评估与可解释输出
 ```
 
-## 目录结构
+详细分层和依赖规则见 [docs/architecture.md](docs/architecture.md)。
+
+## 目录
 
 ```text
 LearnPilot-AI/
-  README.md
-  backend/              主后端服务、数据库模型、业务 API 和 ML 对接层
-  ml/
-    data/                 样例反馈数据
-    docs/                 ML 设计文档
-    scripts/              演示、评估和 API 启动脚本
-    src/ml_service/       ML 服务源码
-    tests/                单元测试
-    requirements.txt      API 运行依赖
-    README.md             ML 模块说明
+├─ backend/                 主后端 Python 包、数据库脚本和测试
+├─ ml/                      ML 服务、训练评估和测试
+├─ docs/                    仓库级架构文档
+├─ Dockerfile               backend / ml 多阶段镜像
+├─ docker-compose.yml       完整本地服务栈
+├─ environment.yml          唯一 Conda 环境定义
+├─ render.yaml              Render 双服务 Blueprint
+└─ .env.example             唯一环境变量模板
 ```
 
 ## 快速开始
 
-### 1. 创建 conda 沙箱
+在仓库根目录执行：
 
 ```powershell
 conda env create -f environment.yml
-conda activate learnpilot-ai
+conda activate learnpilot-ml
+Copy-Item .env.example .env
 ```
 
-如依赖变化，可更新环境：
+如果环境已经存在：
 
 ```powershell
 conda env update -f environment.yml --prune
 ```
 
-可选安装高级排序依赖：
+### 生成数据、训练和评估
 
 ```powershell
-pip install -r ml/requirements-advanced.txt
+learnpilot-ml-generate
+learnpilot-ml-train
+learnpilot-ml-evaluate
+learnpilot-ml-demo
 ```
 
-### 2. 运行单元测试
+`ml/data/generated/`、`ml/artifacts/` 和 `ml/reports/` 都是可再生输出，不进入 Git。
+
+### 启动服务
+
+终端一：
 
 ```powershell
-python -m unittest discover -s ml/tests
+learnpilot-ml-api
 ```
 
-### 3. 运行命令行演示
+终端二：
 
 ```powershell
-python ml/scripts/demo.py
+learnpilot-backend
 ```
 
-脚本会输出一次完整学习闭环结果，包括学生画像、推荐资源、学习路径、生成学习卡和多智能体 trace。
+服务地址：
 
-### 4. 运行离线评估
+- ML API：`http://127.0.0.1:8000/docs`
+- Backend API：`http://127.0.0.1:8001/docs`
+
+真实 Qwen 联调需要在 `.env` 中设置 `DASHSCOPE_API_KEY`，然后执行：
 
 ```powershell
-python ml/scripts/evaluate.py
+learnpilot-ml-qwen-check
 ```
 
-评估脚本会基于 `ml/data/sample_feedback.json` 输出 `Recall@5`、`NDCG@5`、推荐明细和掌握度提升示例。
+未设置密钥时，`LEARNPILOT_LLM_MODE=template` 提供确定性的离线生成，便于测试与演示。
 
-完整 ML 2.0 流程：
+## 测试
 
 ```powershell
-python ml/scripts/generate_synthetic_data.py
-python ml/scripts/train_ranker.py
-python ml/scripts/evaluate.py
-python ml/scripts/demo.py
+python -m unittest discover -s ml/tests -v
+python -m unittest discover -s backend/tests -v
 ```
 
-### 5. 启动 API 服务
+测试覆盖 ML 学习闭环、训练防泄漏、RAG 引用、辅导、后端业务、ML 适配和前后端接口契约。
+
+## 容器部署
+
+仓库只维护一个多阶段 Dockerfile。后端 API 与 RQ Worker 复用同一后端镜像。
 
 ```powershell
-uvicorn ml_service.api:app --app-dir ml/src --reload --port 8000
+docker-compose build
+docker-compose up
 ```
 
-启用 qwen3.7-plus 真实生成前，请复制 `.env.example` 为 `.env` 或 `ml/.env`，再填入自己的 DashScope API Key。未配置 `.env` 时系统会自动使用模板生成，测试和离线演示不受影响。
+完整服务栈包括 `backend`、`ml-service`、`worker`、`mysql` 和 `redis`。
 
-```powershell
-Copy-Item .env.example .env
-# 编辑 .env，填入 DASHSCOPE_API_KEY
-python ml/scripts/qwen_smoke_test.py
-```
+Render 部署使用根目录 [render.yaml](render.yaml)。Blueprint 会创建 ML 和后端两个 Web Service，并通过私有网络连接。
 
-Windows 也可以使用项目脚本：
+## 文档
 
-```powershell
-powershell -ExecutionPolicy Bypass -File ml/scripts/run_api.ps1 -Port 8000
-```
-
-健康检查：
-
-```text
-GET http://127.0.0.1:8000/health
-```
-
-### 6. 双服务联调
-
-后端对外接口保持 `/api/v1/learning/start` 不变。启用 ML 后，主后端会查询 `knowledge_point`、`course_resource`、`student_profile`、`student_weakness`，把真实课程资源传给 ML `/recommend`，再把 ML 返回的画像、资源和路径保存回后端数据库。
-
-```powershell
-# 终端 1：启动 ML 服务
-uvicorn ml_service.api:app --app-dir ml/src --reload --port 8000
-
-# 终端 2：启动主后端
-cd backend
-$env:ML_SERVICE_URL="http://127.0.0.1:8000"
-$env:USE_ML_SERVICE="true"
-uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8001
-```
-
-联调请求：
-
-```text
-POST http://127.0.0.1:8001/api/v1/learning/start
-```
-
-如果 ML 服务未启动、超时或大模型不可用，主后端会自动回退到本地 Agent 流程；如果只是 ML 返回了部分字段，后端只补齐缺失的资源或路径，不会丢弃已返回的 ML 结果。
-
-### 7. Docker 生产化启动
-
-```powershell
-Copy-Item .env.production.example .env
-# 修改 MYSQL_PASSWORD、JWT_SECRET_KEY、DASHSCOPE_API_KEY 等生产配置
-docker compose up --build
-```
-
-包含服务：`backend`、`ml-service`、`mysql`、`redis`、`worker`。生产模式推荐配置真实 `DASHSCOPE_API_KEY`；未配置时仅适合 demo fallback。
-
-## API 说明
-
-| 接口 | 方法 | 说明 |
-| --- | --- | --- |
-| `/health` | GET | 服务健康检查 |
-| `/demo-cases` | GET | 获取内置演示学生样例 |
-| `/train/status` | GET | 获取当前排序模型和 fallback 状态 |
-| `/evaluate` | GET | 运行内置 ML 指标评估 |
-| `/diagnose` | POST | 输入测评答案，输出知识点诊断结果 |
-| `/recommend` | POST | 输出画像、推荐、路径、学习卡和 Agent trace |
-| `/path` | POST | 输出学习路径和知识图谱 |
-| `/generate` | POST | 输出 RAG 个性化学习卡 |
-| `/feedback` | POST | 输入学习反馈，输出反馈前后变化 |
-| `/student/update-profile` | POST | 输入历史画像和新事件，输出更新画像 |
-
-请求示例：
-
-```json
-{
-  "student": {
-    "student_id": "stu_001",
-    "goals": ["两周内完成 Python 入门项目"],
-    "preferred_styles": ["example", "quiz"],
-    "diagnostics": {
-      "变量": 0.9,
-      "条件判断": 0.62,
-      "循环": 0.42,
-      "函数": 0.35,
-      "列表": 0.4
-    },
-    "events": [
-      {
-        "resource_id": "r003",
-        "knowledge_points": ["循环"],
-        "score": 0.5,
-        "completed": true,
-        "dwell_seconds": 720,
-        "liked": true
-      }
-    ]
-  },
-  "top_k": 5
-}
-```
-
-响应会包含：
-
-- `profile`：学生画像、目标难度、风险等级、薄弱点、投入度、稳定性和遗忘风险。
-- `recommendations`：推荐资源、分数和推荐理由。
-- `learning_path`：阶段化学习路径。
-- `generated_cards`：基于检索资源生成的个性化学习卡。
-- `model_meta`：排序模型类型、特征版本、训练指标和 fallback 状态。
-- `retrieval_evidence`：RAG 检索证据。
-- `generation_quality`：生成质量分。
-- `counterfactual_explanations`：反事实推荐解释。
-- `knowledge_graph`：知识图谱节点及当前掌握度。
-- `agent_traces`：多智能体执行过程。
-
-## 演示场景
-
-以 Python 入门学习为例，系统内置了变量、条件判断、循环、函数、列表、项目实践等知识点，以及视频、例题、测验、文本、项目等不同形式的资源。
-
-当学生在“循环、函数、列表”等知识点掌握度较低时，系统会：
-
-1. 识别薄弱知识点并生成风险等级。
-2. 推荐难度适中、形式偏好的资源。
-3. 根据变量、条件判断、循环、函数、列表、项目实践之间的先修关系规划路径。
-4. 为优先学习步骤生成讲解、例子、练习和复习提示。
-5. 在学生完成资源并提交反馈后，更新掌握度并调整后续路径。
-
-## 项目亮点
-
-- 闭环完整：覆盖诊断、画像、推荐、规划、生成、反馈再规划全过程。
-- 多智能体可解释：每个 Agent 都返回 action 和 output，便于前端展示和评委理解。
-- 推荐理由透明：每条推荐都带有排序原因，降低黑盒感。
-- 知识图谱驱动：路径规划考虑先修关系，不只按薄弱点简单排序。
-- 可扩展大模型：当前生成模块为可运行原型，后续可替换为真实 LLM 和向量检索。
-- 工程可验证：提供单元测试、演示脚本和包含 Recall、NDCG、路径合理性、生成质量、多样性指标的离线评估脚本。
-
-## 后续规划
-
-- 接入真实课程资源库和题库，扩大知识点与资源覆盖范围。
-- 使用向量数据库实现语义检索，提升 RAG 召回质量。
-- 接入真实大模型，生成更自然的个性化讲解和练习。
-- 引入知识追踪模型，如 DKT 或 SAKT，刻画学生长期掌握变化。
-- 在交互数据充足后，将规则排序升级为 Learning-to-Rank、LightGBM 或双塔召回模型。
-- 增加前端可视化页面，展示学生画像、知识图谱、推荐理由和 Agent 协作过程。
-
-## 相关文档
-
-- ML 模块说明：`ml/README.md`
-- ML 设计文档：`ml/docs/ml_design.md`
+- [工程架构](docs/architecture.md)
+- [后端说明](backend/README.md)
+- [后端 API 参考](backend/docs/api-reference.md)
+- [ML 服务说明](ml/README.md)
+- [ML 设计](ml/docs/design.md)
+- [赛题要求追踪矩阵](ml/docs/requirements-traceability.md)

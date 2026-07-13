@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pymysql
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 KB_DIR = ROOT_DIR / "data" / "knowledge_base"
 ENV_FILE = ROOT_DIR / ".env"

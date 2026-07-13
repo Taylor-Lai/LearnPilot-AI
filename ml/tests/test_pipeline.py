@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 import os
-import sys
 import tempfile
-from pathlib import Path
 import unittest
+from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 os.environ.setdefault("LEARNPILOT_LLM_MODE", "template")
 
 from ml_service import InteractionEvent, LearningMLPipeline
 from ml_service.api import app
-from ml_service.content_generator import ContentGenerator, load_dotenv_if_present
-from ml_service.data import DEFAULT_RESOURCES
-from ml_service.profiler import StudentProfiler
-from ml_service.rag import ResourceRetriever
+from ml_service.application.profiler import StudentProfiler
+from ml_service.datasets.catalog import DEFAULT_RESOURCES
+from ml_service.domain.diagnostics import AssessmentItem, AssessmentResponse, DiagnosticEngine
+from ml_service.infrastructure.content_generator import ContentGenerator, load_dotenv_if_present
+from ml_service.infrastructure.rag import ResourceRetriever
+from ml_service.infrastructure.ranker import RankingFeatureExtractor, train_ranker_artifacts
 
 try:
     from fastapi.testclient import TestClient
@@ -47,6 +46,47 @@ class StudentProfilerTest(unittest.TestCase):
         self.assertIn("循环", profile.recent_focus)
         self.assertGreater(profile.engagement_score, 0.5)
         self.assertGreaterEqual(profile.forgetting_risk, 0.0)
+
+    def test_profile_infers_cognitive_preference_and_pace(self) -> None:
+        profile = StudentProfiler().build_profile(
+            "stu",
+            {"循环": 0.45},
+            [
+                InteractionEvent(
+                    student_id="stu",
+                    resource_id="r1",
+                    knowledge_points=("循环",),
+                    score=0.85,
+                    completed=True,
+                    dwell_seconds=720,
+                    liked=True,
+                    resource_style="example",
+                )
+            ],
+            preferred_styles=["quiz"],
+        )
+        self.assertIn("example", profile.cognitive_preferences)
+        self.assertGreater(profile.mastery_confidence["循环"], 0.25)
+        self.assertGreaterEqual(profile.recommended_pace_minutes, 10)
+
+
+class DiagnosticEngineTest(unittest.TestCase):
+    def test_raw_assessment_responses_produce_explainable_mastery(self) -> None:
+        result = DiagnosticEngine().evaluate(
+            items=[
+                AssessmentItem("q1", ("循环",), difficulty=0.4, discrimination=1.2),
+                AssessmentItem("q2", ("循环", "条件判断"), difficulty=0.7, discrimination=1.4),
+            ],
+            responses=[
+                AssessmentResponse("q1", score=1.0, elapsed_seconds=80, confidence=0.9),
+                AssessmentResponse("q2", score=0.2, elapsed_seconds=260, hint_count=2, attempts=2),
+            ],
+            previous_mastery={"条件判断": 0.6},
+        )
+        self.assertIn("循环", result["mastery"])
+        self.assertIn("条件判断", result["mastery_confidence"])
+        self.assertEqual(len(result["evidence"]), 2)
+        self.assertLessEqual(result["mastery"]["条件判断"], 0.6)
 
 
 class PipelineTest(unittest.TestCase):
@@ -134,6 +174,55 @@ class PipelineTest(unittest.TestCase):
 
         self.assertGreater(result["profile"]["mastery"]["循环"], 0.2)
         self.assertIn("函数", result["profile"]["mastery"])
+
+    def test_behavior_history_reaches_ranking_features(self) -> None:
+        result = LearningMLPipeline().recommend(
+            student_id="stu_history",
+            diagnostics={"循环": 0.35},
+            events=[
+                InteractionEvent(
+                    student_id="stu_history",
+                    resource_id="r006",
+                    knowledge_points=("循环",),
+                    score=0.9,
+                    completed=True,
+                    liked=True,
+                )
+            ],
+            top_k=8,
+        )
+        self.assertTrue(any(item["ranking_features"]["positive_feedback"] > 0 for item in result["recommendations"]))
+
+    def test_tutor_returns_grounded_multiturn_guidance(self) -> None:
+        result = LearningMLPipeline().tutor(
+            student_id="stu_tutor",
+            question="为什么循环会多执行一次？",
+            diagnostics={"循环": 0.3},
+            history=[{"role": "student", "content": "我使用了 while。"}],
+            knowledge_point="循环",
+        )
+        self.assertTrue(result["grounded"])
+        self.assertGreater(len(result["evidence"]), 0)
+        self.assertGreater(len(result["hints"]), 0)
+        self.assertEqual(result["agent_traces"][-1]["agent"], "辅导 Agent")
+
+
+class RankerTrainingTest(unittest.TestCase):
+    def test_training_reports_group_holdout_metrics(self) -> None:
+        names = RankingFeatureExtractor().feature_names()
+        rows = []
+        groups = []
+        for index in range(20):
+            label = index % 2
+            features = {name: (0.8 if label else 0.2) for name in names}
+            rows.append((features, label))
+            groups.append(f"stu_{index // 2}")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            meta = train_ranker_artifacts(rows, Path(temp_dir), groups=groups)
+        self.assertGreater(meta["train_samples"], 0)
+        self.assertGreater(meta["validation_samples"], 0)
+        self.assertIn("validation_auc", meta["metrics"])
+        self.assertTrue(meta["dataset_fingerprint"])
 
 
 class RagAndGenerationTest(unittest.TestCase):
@@ -351,6 +440,30 @@ class ApiTest(unittest.TestCase):
         )
         self.assertEqual(profile.status_code, 200)
         self.assertIn("learning_stage", profile.json()["profile"])
+
+    def test_assessment_and_tutor_endpoints(self) -> None:
+        client = TestClient(app)
+        diagnostic = client.post(
+            "/assessment/diagnose",
+            json={
+                "items": [{"item_id": "q1", "knowledge_points": ["循环"], "difficulty": 0.6}],
+                "responses": [{"item_id": "q1", "score": 0.4, "confidence": 0.8}],
+            },
+        )
+        self.assertEqual(diagnostic.status_code, 200)
+        self.assertIn("mastery_confidence", diagnostic.json())
+
+        tutor = client.post(
+            "/tutor/ask",
+            json={
+                "student": {"student_id": "stu_api_tutor", "diagnostics": {"循环": 0.3}},
+                "question": "循环边界怎么检查？",
+                "knowledge_point": "循环",
+                "history": [{"role": "student", "content": "我总是多循环一次。"}],
+            },
+        )
+        self.assertEqual(tutor.status_code, 200)
+        self.assertTrue(tutor.json()["grounded"])
 
 
 if __name__ == "__main__":

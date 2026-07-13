@@ -8,7 +8,6 @@ from backend.app.core.database import get_db
 from backend.app.core.security import get_current_user
 from backend.app.models import User
 
-
 router = APIRouter(prefix="/api/user", tags=["user"])
 
 

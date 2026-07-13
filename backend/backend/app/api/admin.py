@@ -18,7 +18,6 @@ from backend.app.models import (
     User,
 )
 
-
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
@@ -58,12 +57,7 @@ def list_users(
         query = query.filter(User.status == status.strip())
 
     total = query.count()
-    users = (
-        query.order_by(User.id.desc())
-        .offset((page - 1) * pageSize)
-        .limit(pageSize)
-        .all()
-    )
+    users = query.order_by(User.id.desc()).offset((page - 1) * pageSize).limit(pageSize).all()
     return {
         "items": [user_payload(user) for user in users],
         "total": total,

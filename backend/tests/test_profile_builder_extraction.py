@@ -35,8 +35,7 @@ class ProfileBuilderExtractionTest(unittest.TestCase):
         )
         self.assertEqual(
             profile["cognitive_style"],
-            "\u5148\u770b\u6574\u4f53\u6846\u67b6\uff0c"
-            "\u518d\u7ed3\u5408\u6848\u4f8b\u9010\u6b65\u63a8\u5bfc",
+            "\u5148\u770b\u6574\u4f53\u6846\u67b6\uff0c\u518d\u7ed3\u5408\u6848\u4f8b\u9010\u6b65\u63a8\u5bfc",
         )
         self.assertEqual(profile["knowledge_level"], "\u57fa\u7840\u6c34\u5e73")
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import os
 import sys
 import unittest
-import os
 from pathlib import Path
 
 from sqlalchemy import create_engine

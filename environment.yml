@@ -1,20 +1,27 @@
-name: learnpilot-ai
+name: learnpilot-ml
 channels:
-  - conda-forge
   - defaults
 dependencies:
   - python=3.11
   - pip
-  - numpy
-  - pandas
-  - scikit-learn
-  - joblib
-  - fastapi
-  - uvicorn
-  - pydantic
-  - httpx
-  - pytest
   - pip:
-      - "uvicorn[standard]>=0.30.0"
-      - redis>=5.0.0
-      - rq>=2.0.0
+      # Versions validated by ML, backend, and live API integration tests.
+      - fastapi==0.115.6
+      - uvicorn[standard]==0.34.0
+      - pydantic==2.10.4
+      - httpx==0.28.1
+      - python-dotenv==1.0.1
+      - numpy==2.4.6
+      - pandas==2.3.3
+      - scikit-learn==1.9.0
+      - joblib==1.5.3
+      - lightgbm==4.6.0
+      - sqlalchemy==2.0.36
+      - pymysql==1.1.1
+      - psycopg2-binary==2.9.12
+      - pydantic-settings==2.7.1
+      - redis==5.2.1
+      - rq==2.1.0
+      - ruff==0.15.21
+      - -e ./ml
+      - -e ./backend

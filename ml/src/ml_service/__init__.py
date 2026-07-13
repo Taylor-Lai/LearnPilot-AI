@@ -1,14 +1,16 @@
 """Machine learning services for personalized learning."""
 
-from .models import (
+from .application.agents import AgentTrace
+from .application.pipeline import LearningMLPipeline
+from .application.tutor import TutorAgent
+from .domain.diagnostics import AssessmentItem, AssessmentResponse, DiagnosticEngine
+from .domain.models import (
     InteractionEvent,
     KnowledgeNode,
     LearningResource,
     Recommendation,
     StudentProfile,
 )
-from .pipeline import LearningMLPipeline
-from .agents import AgentTrace
 
 __all__ = [
     "InteractionEvent",
@@ -18,4 +20,8 @@ __all__ = [
     "StudentProfile",
     "LearningMLPipeline",
     "AgentTrace",
+    "AssessmentItem",
+    "AssessmentResponse",
+    "DiagnosticEngine",
+    "TutorAgent",
 ]

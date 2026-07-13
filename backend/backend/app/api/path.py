@@ -22,7 +22,6 @@ from backend.app.models import (
 )
 from backend.app.services.learning_service import learning_service
 
-
 router = APIRouter(prefix="/path", tags=["path"])
 
 
@@ -171,7 +170,7 @@ def _edges(nodes: list[LearningPathNode]) -> list[dict]:
     ordered = sorted(nodes, key=lambda item: item.step_order)
     return [
         {"from": str(current.id), "to": str(following.id)}
-        for current, following in zip(ordered, ordered[1:])
+        for current, following in zip(ordered, ordered[1:], strict=False)
     ]
 
 
@@ -202,11 +201,7 @@ def generate_path(payload: PathGenerateRequest, db: Session = Depends(get_db)) -
     try:
         db_profile = upsert_profile(db, user_id, payload.profile)
         course_name = payload.profile.get("course") or db_profile.course or ""
-        course = (
-            db.query(Course).filter(Course.name == course_name).first()
-            if course_name
-            else None
-        )
+        course = db.query(Course).filter(Course.name == course_name).first() if course_name else None
         ml_title, nodes_data = _ml_nodes(profile_payload(db_profile))
         if not nodes_data:
             nodes_data = _local_nodes(profile_payload(db_profile))
@@ -265,10 +260,11 @@ def list_paths(userId: int = Query(gt=0), db: Session = Depends(get_db)) -> dict
         .all()
     )
     course_ids = {path.course_id for path in paths if path.course_id}
-    courses = {
-        course.id: course.name
-        for course in db.query(Course).filter(Course.id.in_(course_ids)).all()
-    } if course_ids else {}
+    courses = (
+        {course.id: course.name for course in db.query(Course).filter(Course.id.in_(course_ids)).all()}
+        if course_ids
+        else {}
+    )
     items = [
         {
             "pathId": str(path.id),
@@ -344,9 +340,7 @@ def get_path_progress(pathId: int = Query(gt=0), db: Session = Depends(get_db)) 
         "completed_nodes": completed,
         "progress": percentage,
         "current_node": (
-            {"id": str(current.id), "nodeId": str(current.id), "title": current.title}
-            if current
-            else None
+            {"id": str(current.id), "nodeId": str(current.id), "title": current.title} if current else None
         ),
     }
 
@@ -390,11 +384,7 @@ def get_node_resources(nodeId: int = Query(gt=0), db: Session = Depends(get_db))
     items = []
     for resource in resources:
         resource_type = (resource.resource_type or "").lower()
-        url = (
-            f"/resources/{resource.id}/view"
-            if resource_type == "document"
-            else (resource.url or "")
-        )
+        url = f"/resources/{resource.id}/view" if resource_type == "document" else (resource.url or "")
         items.append(
             {
                 "id": resource.id,
