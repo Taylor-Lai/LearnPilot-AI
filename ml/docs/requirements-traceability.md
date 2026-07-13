@@ -1,6 +1,6 @@
-# A3 赛题 ML 要求追踪矩阵
+# A3 赛题 ML 技术追踪矩阵
 
-本文件只覆盖团队中 ML 模块负责的范围。前端交互、用户权限、课程管理和业务持久化由主后端负责。
+本文件记录 ML 服务的技术实现证据。全项目的官方要求、完成状态与最终验收标准以 [`docs/competition-requirements.md`](../../docs/competition-requirements.md) 为准。
 
 | 赛题能力 | ML 实现 | 可验证入口 |
 | --- | --- | --- |
@@ -22,7 +22,7 @@
 
 ```powershell
 conda env create -f environment.yml
-conda activate learnpilot-ml
+conda activate learnpilot-ai
 learnpilot-ml-generate
 learnpilot-ml-train
 learnpilot-ml-evaluate
@@ -30,4 +30,4 @@ python -m unittest discover -s ml/tests -v
 learnpilot-ml-demo
 ```
 
-真实大模型联调需将根目录 `.env.example` 复制为 `.env` 并配置 `DASHSCOPE_API_KEY`；自动化测试默认使用模板模式，不依赖外网。
+自动化测试默认使用模板模式，不依赖外网。正式参赛演示将优先接入科大讯飞相关模型服务；其他模型适配仅作为兼容能力，不作为默认验收依据。

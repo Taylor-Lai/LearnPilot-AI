@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -43,14 +44,15 @@ def load_dotenv_if_present() -> None:
 
 
 @dataclass(frozen=True)
-class QwenMaxClient:
+class OpenAICompatibleClient:
+    provider: str = "qwen"
     api_key: str | None = None
-    model: str = "qwen3.7-plus"
-    base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model: str = "4.0Ultra"
+    base_url: str = "https://spark-api-open.xf-yun.com/v1"
     timeout_seconds: int = 30
 
     @classmethod
-    def from_env(cls) -> QwenMaxClient | None:
+    def from_env(cls) -> OpenAICompatibleClient | None:
         load_dotenv_if_present()
         settings = LLMSettings.from_env()
         if settings.mode in {"template", "offline", "disabled"}:
@@ -58,6 +60,7 @@ class QwenMaxClient:
         if not settings.api_key:
             return None
         return cls(
+            provider=settings.provider,
             api_key=settings.api_key,
             model=settings.model,
             base_url=settings.base_url,
@@ -66,7 +69,7 @@ class QwenMaxClient:
 
     def generate(self, prompt: str) -> str:
         if not self.api_key:
-            raise RuntimeError("Qwen API key is not configured.")
+            raise RuntimeError(f"{self.provider} API credential is not configured.")
 
         payload = {
             "model": self.model,
@@ -79,7 +82,6 @@ class QwenMaxClient:
             ],
             "temperature": 0.4,
             "max_tokens": 1200,
-            "response_format": {"type": "json_object"},
         }
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         http_request = request.Request(
@@ -96,12 +98,30 @@ class QwenMaxClient:
                 raw = response.read().decode("utf-8")
         except error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"Qwen request failed with HTTP {exc.code}: {detail}") from exc
+            raise RuntimeError(f"{self.provider} request failed with HTTP {exc.code}: {detail}") from exc
         except error.URLError as exc:
-            raise RuntimeError(f"Qwen request failed: {exc.reason}") from exc
+            raise RuntimeError(f"{self.provider} request failed: {exc.reason}") from exc
 
         data = json.loads(raw)
         return data["choices"][0]["message"]["content"]
+
+
+QwenMaxClient = OpenAICompatibleClient
+
+
+def decode_json_object(value: str) -> dict:
+    text = value.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text)
+    start = text.find("{")
+    end = text.rfind("}")
+    if start < 0 or end < start:
+        raise ValueError("model response does not contain a JSON object")
+    result = json.loads(text[start : end + 1])
+    if not isinstance(result, dict):
+        raise ValueError("model response JSON must be an object")
+    return result
 
 
 class ContentGenerator:
@@ -110,7 +130,7 @@ class ContentGenerator:
         llm_client: LLMClient | None = None,
         safety_guard: ContentSafetyGuard | None = None,
     ) -> None:
-        self.llm_client = llm_client or QwenMaxClient.from_env() or TemplateLLMClient()
+        self.llm_client = llm_client or OpenAICompatibleClient.from_env() or TemplateLLMClient()
         self.safety_guard = safety_guard or ContentSafetyGuard()
 
     def generate_study_card(
@@ -150,7 +170,8 @@ class ContentGenerator:
         merged["rag_context"] = contexts
         merged["evidence_refs"] = self._sanitize_evidence_refs(merged.get("evidence_refs"), contexts)
         merged["generation_meta"] = {
-            "provider": self.llm_client.model if isinstance(self.llm_client, QwenMaxClient) else "custom",
+            "provider": getattr(self.llm_client, "provider", "custom"),
+            "model": getattr(self.llm_client, "model", "custom"),
             "fallback_used": False,
         }
         return self._finalize_card(merged, input_review)
@@ -252,7 +273,7 @@ class ContentGenerator:
         )
 
     def _parse_generated_card(self, generated: str) -> dict[str, str]:
-        data = json.loads(generated)
+        data = decode_json_object(generated)
         allowed = {
             "title",
             "explanation",

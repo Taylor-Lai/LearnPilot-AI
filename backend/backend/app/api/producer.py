@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import ast
+import io
 import json
 import re
+from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from backend.app.adapters.ml_service_client import MLServiceClient, MLServiceUnavailable
-from backend.app.core.database import get_db
+from backend.app.core.config import get_settings
+from backend.app.core.database import SessionLocal, get_db
 from backend.app.core.security import optional_user
 from backend.app.models import (
     ProducerArtifact,
@@ -20,6 +24,7 @@ from backend.app.models import (
     ResourceCenter,
     User,
 )
+from backend.app.services.export_service import learning_resource_export_service
 
 router = APIRouter(prefix="/producer", tags=["producer"])
 
@@ -511,6 +516,83 @@ def _task_or_404(db: Session, task_id: str) -> ProducerTask:
     return task
 
 
+def _execute_producer_task(db: Session, task_id: str) -> None:
+    task = _task_or_404(db, task_id)
+    if task.status == "completed":
+        return
+    seed_payload = task.result_json if isinstance(task.result_json, dict) else {}
+    requested_types = _normalize_types(seed_payload.get("requested_types") or DEFAULT_TYPES)
+    try:
+        task.status = "running"
+        task.progress = 10
+        task.error_message = None
+        db.commit()
+
+        result = _build_task_result(db, task.topic, task.requirement or "", requested_types)
+        task.result_json = result
+        task.progress = 45
+        db.commit()
+
+        result = _enrich_with_ml(
+            db,
+            result,
+            task.topic,
+            task.requirement or "",
+            str(task.user_id) if task.user_id else f"producer-{task_id}",
+        )
+        task.result_json = result
+        task.progress = 80
+        db.commit()
+
+        db.query(ProducerArtifact).filter(ProducerArtifact.task_id == task_id).delete()
+        db.add_all(_artifact_rows(task_id, result, requested_types))
+        task.result_json = result
+        task.status = "completed"
+        task.progress = 100
+        task.error_message = None
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        failed_task = _task_or_404(db, task_id)
+        failed_task.status = "failed"
+        failed_task.error_message = str(exc)
+        db.commit()
+        raise
+
+
+def run_producer_task(task_id: str) -> None:
+    """RQ-compatible producer job with persisted progress and deterministic fallback."""
+    with SessionLocal() as db:
+        _execute_producer_task(db, task_id)
+
+
+def _enqueue_producer_task(task_id: str) -> bool:
+    settings = get_settings()
+    if not settings.producer_async_enabled:
+        return False
+    try:
+        from redis import Redis
+        from rq import Queue
+
+        connection = Redis.from_url(
+            settings.redis_url,
+            socket_connect_timeout=0.35,
+            socket_timeout=0.35,
+        )
+        connection.ping()
+        Queue("default", connection=connection).enqueue(
+            run_producer_task,
+            task_id,
+            job_id=f"producer:{task_id}",
+            job_timeout=settings.producer_job_timeout_seconds,
+            result_ttl=3600,
+            failure_ttl=86400,
+        )
+        return True
+    except Exception:
+        return False
+
+
 @router.post("/task")
 def create_task(
     payload: ProducerTaskRequest,
@@ -528,41 +610,28 @@ def create_task(
         task_type=payload.task_type,
         status="pending",
         progress=0,
+        result_json={"requested_types": requested_types},
     )
     db.add(task)
     db.commit()
 
-    try:
-        task.status = "running"
-        task.progress = 10
-        db.commit()
-        result = _build_task_result(db, topic, payload.requirement, requested_types)
-        result = _enrich_with_ml(
-            db,
-            result,
-            topic,
-            payload.requirement,
-            str(current_user.id) if current_user else f"producer-{task_id}",
-        )
-        db.add_all(_artifact_rows(task_id, result, requested_types))
-        task.result_json = result
-        task.status = "completed"
-        task.progress = 100
-        task.error_message = None
-        db.commit()
-    except Exception as exc:
-        db.rollback()
-        failed_task = _task_or_404(db, task_id)
-        failed_task.status = "failed"
-        failed_task.error_message = str(exc)
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Producer task failed") from exc
+    queued = _enqueue_producer_task(task_id)
+    if not queued:
+        try:
+            _execute_producer_task(db, task_id)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Producer task failed"
+            ) from exc
+    db.expire_all()
+    task = _task_or_404(db, task_id)
 
     return {
         "task_id": task_id,
         "status": task.status,
         "progress": task.progress,
-        "message": "任务创建成功",
+        "message": "任务已进入生成队列" if queued else "任务已完成（同步降级模式）",
+        "execution_mode": "async" if queued else "sync_fallback",
     }
 
 
@@ -640,6 +709,33 @@ def get_task_result(
         "status": task.status,
         "result": task.result_json or {},
     }
+
+
+@router.get("/export/{task_id}")
+def export_task_result(
+    task_id: str,
+    format: str = Query(default="docx", pattern="^(docx|pptx|pdf)$"),
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(optional_user),
+) -> StreamingResponse:
+    task = _task_or_404(db, task_id)
+    _authorize_task(task, current_user)
+    if task.status != "completed" or not task.result_json:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Task result is not ready for export")
+    try:
+        exported = learning_resource_export_service.export(task.result_json, format)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    disposition = f"attachment; filename*=UTF-8''{quote(exported.filename)}"
+    return StreamingResponse(
+        io.BytesIO(exported.content),
+        media_type=exported.media_type,
+        headers={
+            "Content-Disposition": disposition,
+            "Content-Length": str(len(exported.content)),
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.post("/chat")

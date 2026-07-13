@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.adapters.ml_service_client import MLServiceClient, MLServiceUnavailable
 from backend.app.models import Course, CourseResource, FeedbackEvent, KnowledgePoint, StudentProfile, StudentWeakness
+from backend.app.services.course_catalog import ai_prerequisites
 
 STYLE_MAP = {
     "lecture": "video",
@@ -272,11 +273,12 @@ class MLAdapter:
 
     def _knowledge_graph(self, knowledge_points: list[KnowledgePoint]) -> list[dict[str, Any]]:
         point_by_id = {item.id: item for item in knowledge_points}
+        catalog_prerequisites = ai_prerequisites()
         nodes = []
         for item in knowledge_points:
-            prerequisites = []
-            if item.parent_id and item.parent_id in point_by_id:
-                prerequisites.append(point_by_id[item.parent_id].name)
+            prerequisites = list(catalog_prerequisites.get(item.name) or [])
+            if not prerequisites and item.parent_id and item.parent_id in point_by_id:
+                prerequisites = [point_by_id[item.parent_id].name]
             nodes.append(
                 {
                     "name": item.name,

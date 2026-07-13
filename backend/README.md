@@ -10,7 +10,7 @@ backend/
 │  ├─ api/                 HTTP 路由与统一路由装配
 │  ├─ services/            学习闭环和资源导入用例
 │  ├─ agents/              后端智能体编排单元
-│  ├─ adapters/            ML 与 Qwen 适配器
+│  ├─ adapters/            ML 与大模型提供方适配器（星火默认、Qwen 可选）
 │  ├─ models/              SQLAlchemy 实体
 │  ├─ schemas/             HTTP DTO
 │  └─ core/                配置、数据库和安全
@@ -27,7 +27,7 @@ backend/
 
 ```powershell
 conda env create -f environment.yml
-conda activate learnpilot-ml
+conda activate learnpilot-ai
 Copy-Item .env.example .env
 learnpilot-backend
 ```

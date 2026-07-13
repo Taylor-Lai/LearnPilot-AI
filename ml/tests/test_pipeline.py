@@ -390,6 +390,28 @@ class RagAndGenerationTest(unittest.TestCase):
             else:
                 os.environ["QWEN_MODEL"] = original_model
 
+    def test_spark_is_the_default_online_provider(self) -> None:
+        from ml_service.config import LLMSettings
+
+        original = {
+            name: os.environ.get(name) for name in ("LEARNPILOT_LLM_PROVIDER", "SPARK_API_PASSWORD", "SPARK_MODEL")
+        }
+        try:
+            os.environ.pop("LEARNPILOT_LLM_PROVIDER", None)
+            os.environ["SPARK_API_PASSWORD"] = "test-password"
+            os.environ.pop("SPARK_MODEL", None)
+            settings = LLMSettings.from_env()
+            self.assertEqual(settings.provider, "spark")
+            self.assertEqual(settings.api_key, "test-password")
+            self.assertEqual(settings.model, "4.0Ultra")
+            self.assertEqual(settings.base_url, "https://spark-api-open.xf-yun.com/v1")
+        finally:
+            for name, value in original.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+
 
 @unittest.skipIf(TestClient is None, "FastAPI test client is not installed")
 class ApiTest(unittest.TestCase):

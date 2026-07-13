@@ -26,6 +26,7 @@ from backend.app.core.database import (
     ensure_user_columns,
 )
 from backend.app.models import Course, CourseResource, KnowledgePoint, ResourceCenter, User
+from backend.app.services.course_catalog import seed_ai_course
 
 COURSES = [
     {
@@ -289,13 +290,16 @@ def init_demo_data() -> None:
         for resource in RESOURCE_CENTER_ITEMS:
             upsert_resource_center_item(session, resource)
 
+        catalog_result = seed_ai_course(session)
+
         session.commit()
 
         total_resources = session.query(CourseResource).count()
         center_total = session.query(ResourceCenter).count()
         print(
             "SQLite demo database initialized. "
-            f"course_resource_total={total_resources}, resource_center_total={center_total}"
+            f"course_resource_total={total_resources}, resource_center_total={center_total}, "
+            f"ai_knowledge_points={catalog_result['knowledge_points']}"
         )
 
 

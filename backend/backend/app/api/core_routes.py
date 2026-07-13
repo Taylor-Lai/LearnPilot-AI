@@ -125,7 +125,9 @@ def health() -> dict:
         except Exception:
             ml_status = False
     redis_status = _check_redis(settings.redis_url)
-    qwen_configured = bool(settings.dashscope_api_key) or settings.learnpilot_llm_mode.lower() in {
+    llm_provider = settings.learnpilot_llm_provider.lower()
+    provider_credential = settings.dashscope_api_key if llm_provider == "qwen" else settings.spark_api_password
+    llm_configured = bool(provider_credential) or settings.learnpilot_llm_mode.lower() in {
         "template",
         "offline",
     }
@@ -134,7 +136,10 @@ def health() -> dict:
         "database": check_database(),
         "ml_service": ml_status,
         "redis": redis_status,
-        "qwen_configured": qwen_configured,
+        "llm_configured": llm_configured,
+        "qwen_configured": bool(settings.dashscope_api_key),
+        "spark_configured": bool(settings.spark_api_password),
+        "llm_provider": llm_provider,
         "llm_mode": settings.learnpilot_llm_mode,
     }
 

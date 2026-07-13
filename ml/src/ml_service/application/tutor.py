@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from ..domain.models import LearningResource, StudentProfile
-from ..infrastructure.content_generator import LLMClient, QwenMaxClient, TemplateLLMClient
+from ..infrastructure.content_generator import (
+    LLMClient,
+    OpenAICompatibleClient,
+    TemplateLLMClient,
+    decode_json_object,
+)
 from ..infrastructure.rag import ResourceRetriever
 from ..infrastructure.safety import ContentSafetyGuard, SafetyReview
 
@@ -22,7 +26,7 @@ class TutorAgent:
         retriever: ResourceRetriever | None = None,
         safety_guard: ContentSafetyGuard | None = None,
     ) -> None:
-        self.llm_client = llm_client or QwenMaxClient.from_env() or TemplateLLMClient()
+        self.llm_client = llm_client or OpenAICompatibleClient.from_env() or TemplateLLMClient()
         self.retriever = retriever or ResourceRetriever()
         self.safety_guard = safety_guard or ContentSafetyGuard()
 
@@ -56,7 +60,7 @@ class TutorAgent:
             return self._finalize(fallback, input_review)
 
         try:
-            generated = json.loads(
+            generated = decode_json_object(
                 self.llm_client.generate(
                     self._prompt(
                         safe_question,
@@ -69,7 +73,8 @@ class TutorAgent:
             )
             answer = self._validated_result(generated, fallback, evidence)
             answer["generation_meta"] = {
-                "provider": self.llm_client.model if isinstance(self.llm_client, QwenMaxClient) else "custom",
+                "provider": getattr(self.llm_client, "provider", "custom"),
+                "model": getattr(self.llm_client, "model", "custom"),
                 "fallback_used": False,
             }
             return self._finalize(answer, input_review)

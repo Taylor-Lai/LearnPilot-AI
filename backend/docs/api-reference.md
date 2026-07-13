@@ -64,7 +64,7 @@ Document recommendations use:
 }
 ```
 
-The task is completed synchronously and persisted to `producer_task` and `producer_artifact`. Its result includes `lecture`, `mind_map`, `exercises`, `reading`, `videos`, `code_examples`, `datasets`, `roadmap`, reused resource-center references, and five `agent_traces`.
+Redis 可用时任务进入 RQ Worker，并依次持久化 `10/45/80/100` 阶段进度；Redis 不可用时自动同步降级，接口契约不变。结果写入 `producer_task` 和 `producer_artifact`，包含 `lecture`、`mind_map`、`exercises`、`reading`、`videos`、`code_examples`、`datasets`、`roadmap`、课程证据和智能体执行轨迹。
 
 `GET /producer/tasks`
 
@@ -77,6 +77,10 @@ Returns status, progress, and timestamps.
 `GET /producer/result/{task_id}`
 
 Returns the persisted multi-agent generation result.
+
+`GET /producer/export/{task_id}?format=docx|pptx|pdf`
+
+将已完成任务导出为可直接打开的 DOCX、PPTX 或 PDF 文件。接口沿用任务所有者鉴权；任务未完成时返回 `409`，格式不受支持时返回 `422`。
 
 `POST /producer/chat`
 
@@ -165,7 +169,7 @@ Rebuilds the profile from all existing user answers. If the session was started 
 
 `GET /health`
 
-返回服务状态、数据库、ML 服务、Redis、Qwen 配置状态。
+返回服务状态、数据库、ML 服务、Redis、当前大模型提供方，以及星火/Qwen 配置状态。
 
 ## 认证
 

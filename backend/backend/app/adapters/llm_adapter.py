@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from urllib import error, request
 
 from backend.app.core.config import get_settings
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class LLMAdapter:
-    """DashScope Qwen adapter with deterministic template fallback."""
+    """Competition-first LLM adapter: Spark by default, optional Qwen, offline fallback."""
 
     def __init__(self) -> None:
         self.settings = get_settings()
@@ -22,50 +23,74 @@ class LLMAdapter:
             value = os.getenv(env_name, default)
         return str(value or default)
 
-    def _qwen_json(self, prompt: str) -> dict | None:
+    def _provider_json(self, prompt: str) -> dict | None:
         mode = self._setting_or_env("learnpilot_llm_mode", "LEARNPILOT_LLM_MODE", "auto").lower()
         if mode in {"template", "offline", "disabled"}:
             return None
 
-        api_key = self._setting_or_env("dashscope_api_key", "DASHSCOPE_API_KEY")
+        provider = self._setting_or_env("learnpilot_llm_provider", "LEARNPILOT_LLM_PROVIDER", "spark").lower()
+        if provider == "qwen":
+            api_key = self._setting_or_env("dashscope_api_key", "DASHSCOPE_API_KEY")
+            model = os.getenv("QWEN_MODEL", "qwen3.7-plus")
+            base_url = os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+            timeout_seconds = int(os.getenv("QWEN_TIMEOUT_SECONDS", "30"))
+        else:
+            provider = "spark"
+            api_key = self._setting_or_env("spark_api_password", "SPARK_API_PASSWORD")
+            model = os.getenv("SPARK_MODEL", "4.0Ultra")
+            base_url = os.getenv("SPARK_BASE_URL", "https://spark-api-open.xf-yun.com/v1")
+            timeout_seconds = int(os.getenv("SPARK_TIMEOUT_SECONDS", "30"))
         if not api_key:
-            logger.warning("Qwen call skipped: DASHSCOPE_API_KEY is not configured")
+            logger.warning("%s call skipped: API credential is not configured", provider)
             return None
 
         payload = {
-            "model": "qwen-plus",
+            "model": model,
             "messages": [
                 {"role": "system", "content": "你是 LearnPilot AI 教学智能体，请严格返回 JSON。"},
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0.35,
-            "response_format": {"type": "json_object"},
         }
         req = request.Request(
-            "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+            f"{base_url.rstrip('/')}/chat/completions",
             data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             method="POST",
         )
 
         try:
-            with request.urlopen(req, timeout=30) as response:
+            with request.urlopen(req, timeout=timeout_seconds) as response:
                 raw = json.loads(response.read().decode("utf-8"))
             content = raw["choices"][0]["message"]["content"]
-            return json.loads(content)
+            return self._decode_json_object(content)
         except error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
-            logger.exception("Qwen HTTP call failed: status=%s reason=%s body=%s", exc.code, exc.reason, detail)
+            logger.exception("%s HTTP call failed: status=%s reason=%s body=%s", provider, exc.code, exc.reason, detail)
         except error.URLError as exc:
-            logger.exception("Qwen network call failed: %s", exc.reason)
+            logger.exception("%s network call failed: %s", provider, exc.reason)
         except (KeyError, TypeError, json.JSONDecodeError) as exc:
-            logger.exception("Qwen response parsing failed: %s", exc)
+            logger.exception("%s response parsing failed: %s", provider, exc)
         except TimeoutError as exc:
-            logger.exception("Qwen call timed out: %s", exc)
+            logger.exception("%s call timed out: %s", provider, exc)
         return None
 
+    def _decode_json_object(self, value: str) -> dict:
+        text = value.strip()
+        if text.startswith("```"):
+            text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+            text = re.sub(r"\s*```$", "", text)
+        start = text.find("{")
+        end = text.rfind("}")
+        if start < 0 or end < start:
+            raise json.JSONDecodeError("response does not contain a JSON object", text, 0)
+        result = json.loads(text[start : end + 1])
+        if not isinstance(result, dict):
+            raise TypeError("response JSON must be an object")
+        return result
+
     def profile_from_text(self, text: str) -> dict:
-        generated = self._qwen_json(
+        generated = self._provider_json(
             "请从学生学习需求中抽取画像，严格返回 JSON，字段包括：major, grade, course, goal, "
             f"weak_points, preference, cognitive_style, knowledge_level。学习需求：{text}"
         )
@@ -93,7 +118,7 @@ class LLMAdapter:
         }
 
     def generate_resource(self, topic: str, resource_type: str, weak_points: list[str]) -> str:
-        generated = self._qwen_json(
+        generated = self._provider_json(
             "请生成教学资源，严格返回 JSON，字段为 content。要求可验证、分层讲解并避免幻觉。"
             f"主题：{topic}；资源类型：{resource_type}；薄弱点：{weak_points}"
         )
@@ -118,7 +143,7 @@ class LLMAdapter:
         history: list[str] | None = None,
         evidence: list[dict] | None = None,
     ) -> dict:
-        generated = self._qwen_json(self._build_tutor_prompt(question, profile, history, evidence))
+        generated = self._provider_json(self._build_tutor_prompt(question, profile, history, evidence))
         if generated:
             return {
                 "answer": str(generated.get("answer") or ""),

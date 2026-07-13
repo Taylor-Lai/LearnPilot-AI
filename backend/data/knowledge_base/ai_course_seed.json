@@ -1,18 +1,171 @@
 {
-  "course": "人工智能",
-  "knowledge_points": [
-    "机器学习基础",
-    "神经网络",
-    "CNN",
-    "Transformer",
-    "模型评估"
+  "schema_version": "1.0",
+  "course": {
+    "code": "AI-FOUNDATIONS",
+    "name": "人工智能",
+    "credits": 4,
+    "total_hours": 64,
+    "audience": "计算机及相关专业本科生",
+    "description": "覆盖智能搜索、知识表示、机器学习、神经网络、计算机视觉、自然语言处理、大模型与可信人工智能的完整专业基础课程。",
+    "learning_outcomes": [
+      "能够将实际问题抽象为人工智能任务并选择合适的方法",
+      "掌握搜索、知识表示、机器学习和深度学习的核心原理",
+      "能够完成数据准备、模型训练、评估、解释与改进",
+      "能够构建带检索增强和安全约束的大模型应用",
+      "能够分析人工智能系统的伦理、安全和工程风险"
+    ]
+  },
+  "chapters": [
+    {
+      "id": "ch01",
+      "order": 1,
+      "title": "人工智能导论与问题建模",
+      "hours": 6,
+      "objectives": ["理解人工智能主要范式", "掌握智能体与环境的关系", "能够完成状态空间建模"],
+      "lab": "为校园路径规划任务定义状态、动作、目标测试和代价函数。",
+      "knowledge_points": [
+        {"name": "人工智能概述", "difficulty": "easy", "prerequisites": [], "description": "人工智能的发展、主要研究方向、能力边界和典型应用。"},
+        {"name": "智能体与环境", "difficulty": "easy", "prerequisites": ["人工智能概述"], "description": "智能体的感知、决策、行动以及 PEAS 任务环境描述。"},
+        {"name": "问题求解智能体", "difficulty": "medium", "prerequisites": ["智能体与环境"], "description": "目标形式化、行动序列、路径代价与问题求解流程。"},
+        {"name": "状态空间建模", "difficulty": "medium", "prerequisites": ["问题求解智能体"], "description": "将实际任务表示为状态、动作、转移模型与目标测试。"}
+      ],
+      "questions": [
+        {"type": "short_answer", "stem": "请使用 PEAS 框架描述一个校园配送机器人。", "answer": "应分别说明绩效指标、环境、执行器和传感器。", "explanation": "PEAS 用于完整刻画智能体任务环境。", "difficulty": 0.4, "knowledge_point": "智能体与环境"},
+        {"type": "short_answer", "stem": "状态空间问题由哪些基本要素组成？", "answer": "初始状态、动作、转移模型、目标测试和路径代价。", "explanation": "这些要素共同定义可搜索的问题。", "difficulty": 0.45, "knowledge_point": "状态空间建模"}
+      ]
+    },
+    {
+      "id": "ch02",
+      "order": 2,
+      "title": "搜索与博弈",
+      "hours": 8,
+      "objectives": ["比较无信息和启发式搜索", "理解 A* 最优性条件", "能够构建简单博弈智能体"],
+      "lab": "实现 BFS、A* 和极小化极大搜索，并比较节点扩展数。",
+      "knowledge_points": [
+        {"name": "宽度优先与深度优先搜索", "difficulty": "medium", "prerequisites": ["状态空间建模"], "description": "无信息搜索的队列策略、完备性、最优性与复杂度。"},
+        {"name": "启发式搜索", "difficulty": "medium", "prerequisites": ["宽度优先与深度优先搜索"], "description": "启发函数、贪心最佳优先搜索及搜索效率。"},
+        {"name": "A*搜索", "difficulty": "hard", "prerequisites": ["启发式搜索"], "description": "评价函数、可采纳启发式、一致性与最优性。"},
+        {"name": "对抗搜索", "difficulty": "hard", "prerequisites": ["宽度优先与深度优先搜索"], "description": "极小化极大、Alpha-Beta 剪枝和博弈评价函数。"}
+      ],
+      "questions": [
+        {"type": "short_answer", "stem": "A* 搜索在什么条件下能够保证最优？", "answer": "树搜索使用可采纳启发式；图搜索通常要求启发式一致。", "explanation": "启发式不能高估真实剩余代价。", "difficulty": 0.65, "knowledge_point": "A*搜索"},
+        {"type": "true_false", "stem": "Alpha-Beta 剪枝会改变极小化极大搜索的最终决策。", "answer": "false", "explanation": "正确剪枝只减少不影响最终值的节点。", "difficulty": 0.55, "knowledge_point": "对抗搜索"}
+      ]
+    },
+    {
+      "id": "ch03",
+      "order": 3,
+      "title": "知识表示与推理",
+      "hours": 8,
+      "objectives": ["使用逻辑表达知识", "理解推理的可靠性", "构建小型课程知识图谱"],
+      "lab": "构建人工智能课程概念图谱并实现先修关系查询。",
+      "knowledge_points": [
+        {"name": "命题逻辑", "difficulty": "medium", "prerequisites": ["人工智能概述"], "description": "命题、连接词、真值、蕴含、等价与可满足性。"},
+        {"name": "一阶逻辑", "difficulty": "hard", "prerequisites": ["命题逻辑"], "description": "对象、谓词、量词、解释及知识表达。"},
+        {"name": "逻辑推理", "difficulty": "hard", "prerequisites": ["一阶逻辑"], "description": "前向链推、后向链推、归结及推理可靠性。"},
+        {"name": "知识图谱", "difficulty": "medium", "prerequisites": ["一阶逻辑"], "description": "实体、关系、属性、图谱构建、查询与教育场景应用。"}
+      ],
+      "questions": [
+        {"type": "short_answer", "stem": "命题逻辑与一阶逻辑在表达能力上有什么区别？", "answer": "一阶逻辑可表达对象、关系和量化，表达能力强于将事实视作整体的命题逻辑。", "explanation": "量词和谓词是一阶逻辑的关键扩展。", "difficulty": 0.55, "knowledge_point": "一阶逻辑"},
+        {"type": "short_answer", "stem": "课程知识图谱中的实体和关系可以如何设计？", "answer": "实体可包括课程、章节、知识点和资源；关系可包括包含、先修、关联和适合。", "explanation": "设计应服务检索、推荐和路径规划。", "difficulty": 0.5, "knowledge_point": "知识图谱"}
+      ]
+    },
+    {
+      "id": "ch04",
+      "order": 4,
+      "title": "机器学习基础",
+      "hours": 10,
+      "objectives": ["掌握监督学习流程", "实现基础分类模型", "正确划分数据并评估泛化能力"],
+      "lab": "完成一个表格数据分类项目，比较逻辑回归和决策树。",
+      "knowledge_points": [
+        {"name": "机器学习基础", "difficulty": "easy", "prerequisites": ["人工智能概述"], "description": "任务定义、数据、特征、模型、损失、训练与泛化。"},
+        {"name": "线性与逻辑回归", "difficulty": "medium", "prerequisites": ["机器学习基础"], "description": "线性预测、Sigmoid、交叉熵、决策边界与正则化。"},
+        {"name": "决策树", "difficulty": "medium", "prerequisites": ["机器学习基础"], "description": "信息增益、基尼指数、递归划分和剪枝。"},
+        {"name": "模型评估", "difficulty": "hard", "prerequisites": ["线性与逻辑回归", "决策树"], "description": "数据划分、交叉验证、分类指标、过拟合与统计比较。"}
+      ],
+      "questions": [
+        {"type": "short_answer", "stem": "为什么测试集不能参与模型选择和调参？", "answer": "否则会泄漏测试信息，使测试结果不再代表对未知数据的无偏估计。", "explanation": "验证集负责选择，测试集只用于最终评估。", "difficulty": 0.6, "knowledge_point": "模型评估"},
+        {"type": "short_answer", "stem": "信息增益和基尼指数在决策树中有什么作用？", "answer": "它们衡量候选划分后的纯度改善，用于选择划分特征与阈值。", "explanation": "二者都是节点划分准则。", "difficulty": 0.55, "knowledge_point": "决策树"}
+      ]
+    },
+    {
+      "id": "ch05",
+      "order": 5,
+      "title": "神经网络与优化",
+      "hours": 8,
+      "objectives": ["理解多层网络表示能力", "手算一次反向传播", "分析优化和正则化策略"],
+      "lab": "从零实现两层神经网络，并使用梯度检查验证反向传播。",
+      "knowledge_points": [
+        {"name": "感知机", "difficulty": "medium", "prerequisites": ["线性与逻辑回归"], "description": "线性分类、激活函数、更新规则和线性可分性。"},
+        {"name": "多层神经网络", "difficulty": "medium", "prerequisites": ["感知机"], "description": "隐藏层、非线性激活、前向传播和表示学习。"},
+        {"name": "损失函数与梯度下降", "difficulty": "hard", "prerequisites": ["多层神经网络"], "description": "经验风险、梯度、学习率、批量训练和常见优化器。"},
+        {"name": "反向传播", "difficulty": "hard", "prerequisites": ["损失函数与梯度下降"], "description": "计算图、链式法则、梯度传播与梯度检查。"}
+      ],
+      "questions": [
+        {"type": "short_answer", "stem": "反向传播算法的核心数学依据是什么？", "answer": "复合函数求导的链式法则。", "explanation": "梯度沿计算图从输出向输入逐层传播。", "difficulty": 0.55, "knowledge_point": "反向传播"},
+        {"type": "short_answer", "stem": "学习率过大和过小分别可能造成什么问题？", "answer": "过大可能振荡或发散，过小会导致收敛缓慢或停滞。", "explanation": "学习率决定每次参数更新步长。", "difficulty": 0.5, "knowledge_point": "损失函数与梯度下降"}
+      ]
+    },
+    {
+      "id": "ch06",
+      "order": 6,
+      "title": "深度学习与计算机视觉",
+      "hours": 8,
+      "objectives": ["掌握卷积网络结构", "理解正则化和迁移学习", "完成图像分类实验"],
+      "lab": "训练一个小型 CNN，对比数据增强、Dropout 和迁移学习。",
+      "knowledge_points": [
+        {"name": "CNN", "difficulty": "hard", "prerequisites": ["反向传播"], "description": "卷积、步幅、填充、感受野、池化和特征层级。"},
+        {"name": "深度网络正则化", "difficulty": "medium", "prerequisites": ["模型评估", "反向传播"], "description": "权重衰减、Dropout、早停、数据增强和归一化。"},
+        {"name": "迁移学习", "difficulty": "medium", "prerequisites": ["CNN", "深度网络正则化"], "description": "预训练、特征迁移、微调策略与领域差异。"},
+        {"name": "计算机视觉实验", "difficulty": "hard", "prerequisites": ["迁移学习"], "description": "图像数据管线、训练监控、误差分析和实验复现。"}
+      ],
+      "questions": [
+        {"type": "short_answer", "stem": "卷积层的局部连接和权重共享分别带来什么优势？", "answer": "局部连接利用空间局部性，权重共享减少参数并获得一定平移等变性。", "explanation": "二者是 CNN 高效处理图像的重要原因。", "difficulty": 0.6, "knowledge_point": "CNN"},
+        {"type": "short_answer", "stem": "小数据集上为什么常采用迁移学习？", "answer": "预训练模型已学习通用特征，可减少从零训练的数据和计算需求并改善泛化。", "explanation": "微调时需要控制学习率和冻结范围。", "difficulty": 0.5, "knowledge_point": "迁移学习"}
+      ]
+    },
+    {
+      "id": "ch07",
+      "order": 7,
+      "title": "自然语言处理与大模型",
+      "hours": 8,
+      "objectives": ["理解文本表示和注意力", "掌握 Transformer 核心结构", "构建可溯源的 RAG 应用"],
+      "lab": "构建基于课程资料的检索增强问答系统并评估引用准确率。",
+      "knowledge_points": [
+        {"name": "文本表示", "difficulty": "medium", "prerequisites": ["机器学习基础"], "description": "分词、词袋、TF-IDF、词向量与上下文表示。"},
+        {"name": "注意力机制", "difficulty": "hard", "prerequisites": ["多层神经网络", "文本表示"], "description": "查询、键、值、缩放点积注意力和多头机制。"},
+        {"name": "Transformer", "difficulty": "hard", "prerequisites": ["注意力机制"], "description": "位置编码、自注意力、前馈网络、残差和归一化。"},
+        {"name": "大模型与RAG", "difficulty": "hard", "prerequisites": ["Transformer", "知识图谱"], "description": "预训练与对齐、提示设计、检索增强生成、引用约束和评估。"}
+      ],
+      "questions": [
+        {"type": "short_answer", "stem": "自注意力中的 Query、Key 和 Value 分别起什么作用？", "answer": "Query 表示当前检索需求，Key 用于计算相关性，Value 按相关权重聚合形成输出。", "explanation": "注意力通过相关性加权汇总信息。", "difficulty": 0.65, "knowledge_point": "注意力机制"},
+        {"type": "short_answer", "stem": "RAG 如何降低大模型在课程问答中的幻觉风险？", "answer": "先检索可信课程证据，再约束模型依据证据回答并返回可核验引用。", "explanation": "仍需评估检索召回、引用一致性和拒答能力。", "difficulty": 0.6, "knowledge_point": "大模型与RAG"}
+      ]
+    },
+    {
+      "id": "ch08",
+      "order": 8,
+      "title": "可信人工智能与综合实践",
+      "hours": 8,
+      "objectives": ["识别模型安全与伦理风险", "解释和监控模型行为", "完成可复现综合项目"],
+      "lab": "完成个性化学习智能体项目，提交模型卡、测试报告和风险清单。",
+      "knowledge_points": [
+        {"name": "可解释人工智能", "difficulty": "medium", "prerequisites": ["模型评估"], "description": "全局与局部解释、特征重要性、解释可靠性和人机协作。"},
+        {"name": "人工智能安全与伦理", "difficulty": "medium", "prerequisites": ["人工智能概述", "模型评估"], "description": "偏见、隐私、鲁棒性、内容安全、责任边界和治理。"},
+        {"name": "模型部署与监控", "difficulty": "hard", "prerequisites": ["计算机视觉实验", "大模型与RAG"], "description": "模型版本、服务化、延迟、漂移、监控、回滚和成本。"},
+        {"name": "人工智能综合项目", "difficulty": "hard", "prerequisites": ["可解释人工智能", "人工智能安全与伦理", "模型部署与监控"], "description": "需求分析、数据、建模、评估、部署、文档和答辩的完整工程流程。"}
+      ],
+      "questions": [
+        {"type": "short_answer", "stem": "一个可信人工智能系统应同时关注哪些维度？", "answer": "准确性、鲁棒性、公平性、隐私、安全、可解释性、可追责性和持续监控。", "explanation": "可信性不是单一准确率指标。", "difficulty": 0.55, "knowledge_point": "人工智能安全与伦理"},
+        {"type": "short_answer", "stem": "模型上线后为什么仍需监控数据和性能漂移？", "answer": "真实数据分布和用户行为会变化，模型效果可能退化并产生新的风险。", "explanation": "监控用于及时触发告警、再训练或回滚。", "difficulty": 0.55, "knowledge_point": "模型部署与监控"}
+      ]
+    }
   ],
-  "resource_types": [
-    "lecture",
-    "mind_map",
-    "exercise",
-    "reading",
-    "code_example",
-    "video_script"
-  ]
+  "assessment": {
+    "chapter_quiz_ratio": 0.3,
+    "labs_ratio": 0.35,
+    "final_project_ratio": 0.35,
+    "minimum_mastery": 0.6
+  },
+  "resource_types": ["lecture", "mind_map", "exercise", "reading", "code_example", "video_script", "lab", "project"]
 }

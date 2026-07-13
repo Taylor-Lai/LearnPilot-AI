@@ -268,22 +268,7 @@ async function request(options = {}) {
   if (data && upperMethod !== 'GET') {
     const body = prepareRequestBody(url, upperMethod, data)
 
-    if (typeof url === 'string' && url.includes('/api/v1/tutor/ask')) {
-      console.log('REAL SEND BODY', body)
-      if (body.profile) {
-        console.log(
-          'REAL weak_points',
-          body.profile.weak_points,
-          Array.isArray(body.profile.weak_points),
-        )
-      }
-    }
-
     config.body = isFormData ? body : JSON.stringify(body)
-
-    if (typeof url === 'string' && url.includes('/api/v1/tutor/ask')) {
-      console.log('request.js stringify result', config.body)
-    }
   }
 
   const controller = new AbortController()

@@ -17,7 +17,7 @@ Backend API ──────► MySQL / SQLite
   │                       │
   ├──────────────► Redis / RQ Worker
   │
-  └── HTTP ──────► ML Service ──────► Qwen / template fallback
+  └── HTTP ──────► ML Service ──────► Spark / optional Qwen / template fallback
 ```
 
 ## 仓库结构

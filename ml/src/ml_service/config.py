@@ -18,17 +18,32 @@ DOTENV_CANDIDATES = (ML_ROOT / ".env", ML_ROOT.parent / ".env")
 @dataclass(frozen=True)
 class LLMSettings:
     mode: str = "auto"
+    provider: str = "spark"
     api_key: str | None = None
-    model: str = "qwen3.7-plus"
-    base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model: str = "4.0Ultra"
+    base_url: str = "https://spark-api-open.xf-yun.com/v1"
     timeout_seconds: int = 30
 
     @classmethod
     def from_env(cls) -> LLMSettings:
+        provider = os.getenv("LEARNPILOT_LLM_PROVIDER", "spark").strip().lower()
+        if provider not in {"spark", "qwen"}:
+            provider = "spark"
+        if provider == "qwen":
+            api_key = os.getenv("DASHSCOPE_API_KEY") or os.getenv("QWEN_API_KEY")
+            model = os.getenv("QWEN_MODEL", "qwen3.7-plus")
+            base_url = os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+            timeout = os.getenv("QWEN_TIMEOUT_SECONDS", "30")
+        else:
+            api_key = os.getenv("SPARK_API_PASSWORD")
+            model = os.getenv("SPARK_MODEL", "4.0Ultra")
+            base_url = os.getenv("SPARK_BASE_URL", "https://spark-api-open.xf-yun.com/v1")
+            timeout = os.getenv("SPARK_TIMEOUT_SECONDS", "30")
         return cls(
             mode=os.getenv("LEARNPILOT_LLM_MODE", "auto").lower(),
-            api_key=os.getenv("DASHSCOPE_API_KEY") or os.getenv("QWEN_API_KEY"),
-            model=os.getenv("QWEN_MODEL", "qwen3.7-plus"),
-            base_url=os.getenv("QWEN_BASE_URL", cls.base_url).rstrip("/"),
-            timeout_seconds=int(os.getenv("QWEN_TIMEOUT_SECONDS", "30")),
+            provider=provider,
+            api_key=api_key,
+            model=model,
+            base_url=base_url.rstrip("/"),
+            timeout_seconds=int(timeout),
         )

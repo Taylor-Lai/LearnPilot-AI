@@ -177,7 +177,9 @@
                     </div>
                     <div class="btn-group">
                       <button class="ghost-btn" @click="showDocPreview = !showDocPreview">{{ showDocPreview ? '收起预览' : '预览文档' }}</button>
-                      <button class="primary-btn" @click="downloadDocument">下载文档</button>
+                      <button class="ghost-btn" @click="downloadDocument('pdf')">PDF</button>
+                      <button class="ghost-btn" @click="downloadDocument('pptx')">PPTX</button>
+                      <button class="primary-btn" @click="downloadDocument('docx')">DOCX</button>
                     </div>
                   </div>
 
@@ -364,6 +366,7 @@ import { useRouter } from 'vue-router'
 import {
   chatWithAI,
   createTask,
+  downloadTaskExport,
   getCodeExamples,
   getExercises,
   getRoadmap,
@@ -1065,15 +1068,23 @@ function scrollChat() {
   })
 }
 
-function downloadDocument() {
-  const text = documentSections.map((section, index) => `${index + 1}. ${section.title}\n${section.content}\n要点：\n${section.points.map(point => `- ${point}`).join('\n')}`).join('\n\n')
-  const blob = new Blob([`学习文档\n\n${text}`], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = '学习文档.txt'
-  link.click()
-  URL.revokeObjectURL(url)
+async function downloadDocument(format = 'docx') {
+  if (!currentTaskId.value) {
+    pageError.value = '请先生成学习资源，再导出正式文件。'
+    return
+  }
+  pageError.value = ''
+  try {
+    const blob = await downloadTaskExport(currentTaskId.value, format)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${currentTopic.value || '学习资源'}-个性化学习资源.${format}`
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    pageError.value = error?.message || '文件导出失败，请稍后重试。'
+  }
 }
 
 function isCorrect(question) {

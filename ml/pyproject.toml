@@ -28,6 +28,7 @@ learnpilot-ml-train = "ml_service.cli:train"
 learnpilot-ml-evaluate = "ml_service.cli:evaluate"
 learnpilot-ml-demo = "ml_service.cli:demo"
 learnpilot-ml-qwen-check = "ml_service.cli:check_qwen"
+learnpilot-ml-spark-check = "ml_service.cli:check_spark"
 
 [tool.setuptools.packages.find]
 where = ["src"]

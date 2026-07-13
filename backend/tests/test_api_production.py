@@ -4,6 +4,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -16,6 +17,7 @@ os.environ.setdefault("SQLITE_DATABASE_URL", "sqlite://")
 os.environ.setdefault("USE_ML_SERVICE", "false")
 os.environ.setdefault("LEARNPILOT_LLM_MODE", "template")
 
+from backend.app.api.producer import _execute_producer_task
 from backend.app.core.database import Base, get_db
 from backend.app.core.security import hash_password
 from backend.app.main import app
@@ -159,6 +161,20 @@ class ProductionApiTest(unittest.TestCase):
         self.assertIn("lecture", result.json()["result"])
         self.assertTrue(result.json()["result"]["generation_fallback"])
 
+        for file_format, signature, content_type in (
+            ("docx", b"PK", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+            ("pptx", b"PK", "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
+            ("pdf", b"%PDF", "application/pdf"),
+        ):
+            exported = self.client.get(
+                f"/producer/export/{task_id}?format={file_format}",
+                headers=owner_headers,
+            )
+            self.assertEqual(exported.status_code, 200)
+            self.assertEqual(exported.headers["content-type"], content_type)
+            self.assertTrue(exported.content.startswith(signature))
+            self.assertIn("attachment", exported.headers["content-disposition"])
+
         stranger = self.client.post(
             "/api/auth/register",
             json={"username": "stranger", "email": "stranger@example.com", "password": "secret123"},
@@ -166,6 +182,34 @@ class ProductionApiTest(unittest.TestCase):
         stranger_headers = {"Authorization": f"Bearer {stranger['access_token']}"}
         self.assertEqual(self.client.get(f"/producer/result/{task_id}").status_code, 401)
         self.assertEqual(self.client.get(f"/producer/result/{task_id}", headers=stranger_headers).status_code, 403)
+        self.assertEqual(
+            self.client.get(f"/producer/export/{task_id}?format=docx", headers=stranger_headers).status_code,
+            403,
+        )
+
+    def test_producer_queues_when_worker_backend_is_available(self) -> None:
+        account = self.client.post(
+            "/api/auth/register",
+            json={"username": "queued", "email": "queued@example.com", "password": "secret123"},
+        ).json()
+        headers = {"Authorization": f"Bearer {account['access_token']}"}
+        with patch("backend.app.api.producer._enqueue_producer_task", return_value=True):
+            created = self.client.post(
+                "/producer/task",
+                headers=headers,
+                json={"topic": "Transformer", "types": ["lecture", "exercise"]},
+            )
+        self.assertEqual(created.status_code, 200)
+        self.assertEqual(created.json()["execution_mode"], "async")
+        self.assertEqual(created.json()["status"], "pending")
+        task_id = created.json()["task_id"]
+
+        with self.Session() as db:
+            _execute_producer_task(db, task_id)
+
+        completed = self.client.get(f"/producer/task/{task_id}", headers=headers)
+        self.assertEqual(completed.json()["status"], "completed")
+        self.assertEqual(completed.json()["progress"], 100)
 
     def test_admin_task_console_is_protected(self) -> None:
         with self.Session() as db:

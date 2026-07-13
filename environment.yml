@@ -1,4 +1,4 @@
-name: learnpilot-ml
+name: learnpilot-ai
 channels:
   - defaults
 dependencies:
@@ -22,6 +22,9 @@ dependencies:
       - pydantic-settings==2.7.1
       - redis==5.2.1
       - rq==2.1.0
+      - python-docx==1.2.0
+      - python-pptx==1.0.2
+      - reportlab==4.4.3
       - ruff==0.15.21
       - -e ./ml
       - -e ./backend

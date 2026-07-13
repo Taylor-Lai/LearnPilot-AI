@@ -27,7 +27,11 @@ class Settings(BaseSettings):
     jwt_secret_key: str = Field(default="change-me-in-production", alias="JWT_SECRET_KEY")
     jwt_expire_minutes: int = Field(default=1440, alias="JWT_EXPIRE_MINUTES")
     redis_url: str = Field(default="redis://127.0.0.1:6379/0", alias="REDIS_URL")
+    producer_async_enabled: bool = Field(default=True, alias="PRODUCER_ASYNC_ENABLED")
+    producer_job_timeout_seconds: int = Field(default=180, alias="PRODUCER_JOB_TIMEOUT_SECONDS")
     dashscope_api_key: str = Field(default="", alias="DASHSCOPE_API_KEY")
+    spark_api_password: str = Field(default="", alias="SPARK_API_PASSWORD")
+    learnpilot_llm_provider: str = Field(default="spark", alias="LEARNPILOT_LLM_PROVIDER")
     learnpilot_llm_mode: str = Field(default="auto", alias="LEARNPILOT_LLM_MODE")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 

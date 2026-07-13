@@ -10,7 +10,7 @@ ml/
 │  ├─ api/                 FastAPI 应用和请求契约
 │  ├─ application/         学习闭环、Agent 编排和多形态资源构建
 │  ├─ domain/              领域模型和诊断逻辑
-│  ├─ infrastructure/      LightGBM、RAG、内容安全和 Qwen 适配器
+│  ├─ infrastructure/      LightGBM、RAG、内容安全和大模型提供方适配器
 │  ├─ datasets/            内置资源、演示和合成数据
 │  ├─ training/            防泄漏训练工作流
 │  └─ evaluation/          离线评估与报告
@@ -31,7 +31,7 @@ ml/reports/
 ## 工作流
 
 ```powershell
-conda activate learnpilot-ml
+conda activate learnpilot-ai
 learnpilot-ml-generate
 learnpilot-ml-train
 learnpilot-ml-evaluate
@@ -62,7 +62,7 @@ learnpilot-ml-api
 | POST | `/student/update-profile` | 更新学生画像 |
 | POST | `/tutor/ask` | 多轮、有据、分层智能辅导 |
 
-## Qwen
+## 大模型提供方
 
 离线测试使用：
 
@@ -70,7 +70,13 @@ learnpilot-ml-api
 LEARNPILOT_LLM_MODE=template
 ```
 
-真实生成在根目录 `.env` 配置 `DASHSCOPE_API_KEY`，并执行：
+正式参赛在线能力默认使用科大讯飞星火。在根目录 `.env` 配置 `SPARK_API_PASSWORD` 后执行：
+
+```powershell
+learnpilot-ml-spark-check
+```
+
+Qwen 仅作为可选兼容提供方；将 `LEARNPILOT_LLM_PROVIDER` 设为 `qwen`，配置 `DASHSCOPE_API_KEY` 后执行：
 
 ```powershell
 learnpilot-ml-qwen-check
@@ -81,10 +87,10 @@ learnpilot-ml-qwen-check
 每张学习卡的 `resource_bundle` 提供七种可直接渲染或继续导出的资源：
 
 - Markdown 讲义
-- 网页幻灯片及逐页结构
+- 可下载 PPTX 及逐页结构
 - SVG 与 Mermaid 思维导图
 - 带答案和评分规则的题库
-- 视频分镜、字幕 SRT 和无障碍文本稿
+- PDF/DOCX、视频分镜、字幕 SRT 和无障碍文本稿
 - 实验指导书
 - 项目任务书
 

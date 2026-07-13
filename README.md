@@ -8,9 +8,9 @@
 | --- | --- |
 | 学习诊断 | 根据题目难度、区分度、作答结果、用时、提示和置信度估计知识点掌握度 |
 | 动态画像 | 融合诊断、行为、偏好和历史状态，输出能力、节奏、风险和认知偏好 |
-| 个性化推荐 | LightGBM 排序结合薄弱度、难度适配、行为反馈、资源质量和知识图谱特征 |
+| 个性化推荐 | 默认规则基线可离线运行；训练模型存在时使用 LightGBM 排序，结合薄弱度、难度适配、行为反馈、资源质量和知识图谱特征 |
 | 学习路径 | 按先修关系生成阶段化路径、学习时长、检查点和补救策略 |
-| 多形态 RAG 生成 | 检索课程证据，生成讲义、网页幻灯片、SVG/Mermaid 思维导图、题库、视频分镜、实验和项目任务书 |
+| 多形态 RAG 生成 | 检索课程证据，生成讲义、PPTX、PDF/DOCX、SVG/Mermaid 思维导图、题库、视频分镜、实验和项目任务书 |
 | 智能辅导 | 基于学生画像、课程证据和多轮上下文进行苏格拉底式引导 |
 | 反馈闭环 | 学习行为和测评结果回写画像，重新规划推荐与学习路径 |
 | 全栈管理 | 反馈处理、生成任务审计、用户权限、平台配置和评测历史均持久化 |
@@ -59,7 +59,7 @@ LearnPilot-AI/
 
 ```powershell
 conda env create -f environment.yml
-conda activate learnpilot-ml
+conda activate learnpilot-ai
 Copy-Item .env.example .env
 ```
 
@@ -108,13 +108,33 @@ npm run dev
 - Backend API：`http://127.0.0.1:8001/docs`
 - Web：`http://127.0.0.1:5173`
 
-真实 Qwen 联调需要在 `.env` 中设置 `DASHSCOPE_API_KEY`，然后执行：
+正式在线生成默认使用科大讯飞星火。在 `.env` 中设置 `SPARK_API_PASSWORD` 后执行：
+
+```powershell
+learnpilot-ml-spark-check
+```
+
+可选的 Qwen 兼容联调需要将 `LEARNPILOT_LLM_PROVIDER` 设为 `qwen`，配置 `DASHSCOPE_API_KEY`，然后执行：
 
 ```powershell
 learnpilot-ml-qwen-check
 ```
 
-未设置密钥时，`LEARNPILOT_LLM_MODE=template` 提供确定性的离线生成，便于测试与演示。
+未设置密钥时，`LEARNPILOT_LLM_MODE=template` 提供确定性的离线生成，便于测试。Qwen 仅作为可选兼容适配。
+
+## 课程知识库
+
+项目内置一门可复现的完整《人工智能》课程：8 章、64 学时、32 个知识点、16 道基础测评题、8 份章节讲义和 8 份实验任务书。课程清单是 SQLite、MySQL、Docker 和云部署共用的唯一数据源。
+
+```powershell
+python backend/scripts/seed_ai_course.py
+```
+
+课程播种可重复执行，不会重复创建知识点、资源或题目。
+
+## 正式资源导出
+
+多智能体生成任务完成后，可在资源生成页直接导出 DOCX、PPTX 和 PDF。后端导出接口为 `GET /producer/export/{task_id}?format=docx|pptx|pdf`，并执行与任务结果相同的所有者鉴权。
 
 ## 测试
 
@@ -156,9 +176,10 @@ python backend/scripts/reset_admin_password.py
 ## 文档
 
 - [工程架构](docs/architecture.md)
+- [官方赛题要求与验收矩阵](docs/competition-requirements.md)
 - [后端说明](backend/README.md)
 - [前端说明](web/README.md)
 - [后端 API 参考](backend/docs/api-reference.md)
 - [ML 服务说明](ml/README.md)
 - [ML 设计](ml/docs/design.md)
-- [赛题要求追踪矩阵](ml/docs/requirements-traceability.md)
+- [ML 技术追踪矩阵](ml/docs/requirements-traceability.md)
