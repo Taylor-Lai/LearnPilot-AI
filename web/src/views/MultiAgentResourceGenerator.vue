@@ -508,7 +508,17 @@ function extractTopicAndRequirement(text) {
   const requirement = text.trim()
   if (!requirement) return { topic: '', requirement: '' }
   const firstSentence = requirement.split(/[。！？.!?\n]/)[0].trim()
-  const topic = (firstSentence || requirement).slice(0, 50)
+  let topic = firstSentence || requirement
+  const generatedSubject = topic.match(/生成\s*([^，,、]{2,30}?)(?=讲义|思维导图|练习题|习题|代码|课程资源|学习资料|学习路线|资源|$)/)
+  if (generatedSubject?.[1]) topic = generatedSubject[1]
+  topic = topic
+    .replace(/^(?:请|请帮我|帮我)?(?:为|围绕|关于)?/, '')
+    .replace(/^(?:我想|我希望|需要)?学习/, '')
+    .replace(/^(?:我想|我希望|需要)/, '')
+    .split(/(?:讲义|思维导图|练习题|习题|可运行代码|代码实操|课程资源|学习资料|学习路线|资源)/)[0]
+    .replace(/(?:的|相关)$/, '')
+    .trim()
+  topic = (topic || firstSentence || requirement).slice(0, 50)
   return { topic, requirement }
 }
 

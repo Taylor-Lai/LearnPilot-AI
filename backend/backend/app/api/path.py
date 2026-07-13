@@ -114,41 +114,50 @@ def _local_nodes(profile: dict) -> list[dict]:
     return nodes[:8]
 
 
-def _ml_nodes(profile: dict) -> tuple[str | None, list[dict]]:
+def _ml_nodes(
+    db: Session,
+    user_id: int,
+    course_id: int | None,
+    profile: dict,
+) -> tuple[str | None, list[dict]]:
     if not get_settings().use_ml_service:
         return None, []
-    payload = {
-        "profile": profile,
-        "goal": profile.get("goal") or "",
-        "weak_points": profile.get("weak_points") or [],
-        "course": profile.get("course") or "",
-    }
+    goal = profile.get("goal") or "提升课程掌握度"
+    payload = learning_service.ml_adapter.build_recommend_payload(db, user_id, course_id, goal)
     result = learning_service.ml_adapter.plan_path(payload)
     if not isinstance(result, dict):
         return None, []
     path_data = result.get("learning_path") or result.get("path") or result
-    if not isinstance(path_data, dict):
+    if isinstance(path_data, list):
+        raw_nodes = path_data
+        title = f"{profile.get('course') or '课程'}个性化学习路径"
+    elif isinstance(path_data, dict):
+        raw_nodes = path_data.get("nodes") or path_data.get("steps") or []
+        title = str(path_data.get("title") or "") or None
+    else:
         return None, []
-    raw_nodes = path_data.get("nodes") or path_data.get("steps") or []
     if not isinstance(raw_nodes, list):
         return None, []
     nodes = []
     for item in raw_nodes:
         if not isinstance(item, dict):
             continue
-        title = item.get("title") or item.get("name")
-        if not title:
+        point = item.get("knowledge_point") or item.get("title") or item.get("name")
+        if not point:
             continue
-        description = item.get("description") or item.get("objective") or item.get("content") or ""
+        description = (
+            item.get("description") or item.get("rationale") or item.get("objective") or item.get("content") or ""
+        )
+        objective = item.get("objective") or item.get("checkpoint") or description
         nodes.append(
             {
-                "title": str(title),
+                "title": str(point),
                 "description": str(description),
-                "objective": str(item.get("objective") or description),
+                "objective": str(objective),
                 "estimated_minutes": int(item.get("estimated_minutes") or item.get("duration") or 30),
             }
         )
-    return str(path_data.get("title") or "") or None, nodes
+    return title, nodes
 
 
 def _node_payload(node: LearningPathNode) -> dict:
@@ -203,9 +212,10 @@ def generate_path(payload: PathGenerateRequest, db: Session = Depends(get_db)) -
         db_profile = upsert_profile(db, user_id, payload.profile)
         course_name = payload.profile.get("course") or db_profile.course or ""
         course = db.query(Course).filter(Course.name == course_name).first() if course_name else None
-        ml_title, nodes_data = _ml_nodes(profile_payload(db_profile))
+        current_profile = profile_payload(db_profile)
+        ml_title, nodes_data = _ml_nodes(db, user_id, course.id if course else None, current_profile)
         if not nodes_data:
-            nodes_data = _local_nodes(profile_payload(db_profile))
+            nodes_data = _local_nodes(current_profile)
 
         goal = payload.profile.get("goal") or db_profile.goal or "提升课程掌握度"
         path = LearningPath(

@@ -84,3 +84,40 @@ ON DUPLICATE KEY UPDATE
   resource_type = VALUES(resource_type),
   content = VALUES(content),
   source = VALUES(source);
+
+INSERT INTO resource_center
+  (title, description, resource_type, category, content, author, status, open_type,
+   knowledge_point, tags, difficulty, summary)
+VALUES
+  ('CNN 基础讲义', '系统理解 CNN 的局部特征提取机制。', 'document', '深度学习',
+   '学习目标：理解卷积、池化、特征图。核心概念：卷积核、步幅、填充。例题：计算卷积输出尺寸。',
+   'LearnPilot AI', 'published', 'content', 'CNN', '人工智能,CNN,卷积神经网络', '入门',
+   'CNN 核心概念、输出尺寸与典型图像任务。'),
+  ('CNN 练习与复盘', '围绕卷积、池化和特征图完成分层练习。', 'document', '计算机视觉',
+   '选择题：卷积核的作用是什么？填空题：池化常用于降低____。简答题：说明 CNN 的局部连接。',
+   'LearnPilot AI', 'published', 'content', 'CNN', 'CNN,练习题,计算机视觉', '基础',
+   '用于检查 CNN 基础掌握度的练习材料。'),
+  ('反向传播原理讲义', '通过链式法则理解损失如何驱动参数更新。', 'document', '深度学习',
+   '学习目标：理解链式法则。核心概念：损失函数、梯度、学习率。关键流程：前向计算、反向求导、参数更新。',
+   'LearnPilot AI', 'published', 'content', '反向传播', '反向传播,梯度,神经网络', '进阶',
+   '反向传播、损失函数、梯度与学习率。'),
+  ('决策树实践案例', '用可解释分类案例学习特征划分。', 'document', '机器学习',
+   '使用 sklearn DecisionTreeClassifier 完成分类案例，观察 max_depth 对过拟合的影响。',
+   'LearnPilot AI', 'published', 'content', '决策树', '机器学习,决策树,代码案例', '基础',
+   '决策树建模流程与过拟合控制。'),
+  ('聚类算法拓展阅读', '比较常见聚类算法的适用条件和评估方式。', 'document', '机器学习',
+   '拓展阅读主题：K-Means、DBSCAN、层次聚类。推荐关键词：无监督学习、距离度量、轮廓系数。',
+   'LearnPilot AI', 'published', 'content', '聚类算法', '机器学习,聚类,无监督学习', '进阶',
+   '常见聚类算法、距离度量与轮廓系数。')
+ON DUPLICATE KEY UPDATE
+  description = VALUES(description),
+  resource_type = VALUES(resource_type),
+  category = VALUES(category),
+  content = VALUES(content),
+  author = VALUES(author),
+  status = VALUES(status),
+  open_type = VALUES(open_type),
+  knowledge_point = VALUES(knowledge_point),
+  tags = VALUES(tags),
+  difficulty = VALUES(difficulty),
+  summary = VALUES(summary);

@@ -25,7 +25,7 @@ from backend.app.core.database import (
     ensure_student_profile_columns,
     ensure_user_columns,
 )
-from backend.app.models import Course, CourseResource, KnowledgePoint, User
+from backend.app.models import Course, CourseResource, KnowledgePoint, ResourceCenter, User
 
 COURSES = [
     {
@@ -155,6 +155,69 @@ COURSE_RESOURCES = [
     ),
 ]
 
+RESOURCE_CENTER_ITEMS = [
+    {
+        "title": "CNN 基础讲义",
+        "description": "从卷积核、步幅、填充到特征图，系统理解 CNN 的局部特征提取机制。",
+        "resource_type": "document",
+        "category": "深度学习",
+        "content": COURSE_RESOURCES[0][5],
+        "author": "LearnPilot AI",
+        "knowledge_point": "CNN",
+        "tags": "人工智能,CNN,卷积神经网络",
+        "difficulty": "入门",
+        "summary": "CNN 核心概念、输出尺寸与典型图像任务。",
+    },
+    {
+        "title": "CNN 练习与复盘",
+        "description": "围绕卷积、池化和特征图完成分层练习与代码思考题。",
+        "resource_type": "document",
+        "category": "计算机视觉",
+        "content": COURSE_RESOURCES[1][5],
+        "author": "LearnPilot AI",
+        "knowledge_point": "CNN",
+        "tags": "CNN,练习题,计算机视觉",
+        "difficulty": "基础",
+        "summary": "用于检查 CNN 基础掌握度的练习材料。",
+    },
+    {
+        "title": "反向传播原理讲义",
+        "description": "通过链式法则理解损失如何形成梯度并驱动网络参数更新。",
+        "resource_type": "document",
+        "category": "深度学习",
+        "content": COURSE_RESOURCES[3][5],
+        "author": "LearnPilot AI",
+        "knowledge_point": "反向传播",
+        "tags": "反向传播,梯度,神经网络",
+        "difficulty": "进阶",
+        "summary": "反向传播、损失函数、梯度与学习率。",
+    },
+    {
+        "title": "决策树实践案例",
+        "description": "用可解释分类案例学习特征划分，并观察树深度对泛化能力的影响。",
+        "resource_type": "document",
+        "category": "机器学习",
+        "content": COURSE_RESOURCES[5][5],
+        "author": "LearnPilot AI",
+        "knowledge_point": "决策树",
+        "tags": "机器学习,决策树,代码案例",
+        "difficulty": "基础",
+        "summary": "决策树建模流程与过拟合控制。",
+    },
+    {
+        "title": "聚类算法拓展阅读",
+        "description": "比较 K-Means、DBSCAN 与层次聚类的适用条件和评估方式。",
+        "resource_type": "document",
+        "category": "机器学习",
+        "content": COURSE_RESOURCES[9][5],
+        "author": "LearnPilot AI",
+        "knowledge_point": "聚类算法",
+        "tags": "机器学习,聚类,无监督学习",
+        "difficulty": "进阶",
+        "summary": "常见聚类算法、距离度量与轮廓系数。",
+    },
+]
+
 
 def upsert_by_id(session, model, item: dict) -> None:
     instance = session.get(model, item["id"])
@@ -182,6 +245,17 @@ def upsert_resource(session, item: tuple[int, int, int | None, str, str, str]) -
         return
     for key, value in values.items():
         setattr(resource, key, value)
+
+
+def upsert_resource_center_item(session, values: dict) -> None:
+    resource = session.query(ResourceCenter).filter(ResourceCenter.title == values["title"]).first()
+    if resource is None:
+        session.add(ResourceCenter(**values, status="published", open_type="content"))
+        return
+    for key, value in values.items():
+        setattr(resource, key, value)
+    resource.status = "published"
+    resource.open_type = "content"
 
 
 def init_demo_data() -> None:
@@ -212,10 +286,17 @@ def init_demo_data() -> None:
         for resource in COURSE_RESOURCES:
             upsert_resource(session, resource)
 
+        for resource in RESOURCE_CENTER_ITEMS:
+            upsert_resource_center_item(session, resource)
+
         session.commit()
 
         total_resources = session.query(CourseResource).count()
-        print(f"SQLite demo database initialized. course_resource_total={total_resources}")
+        center_total = session.query(ResourceCenter).count()
+        print(
+            "SQLite demo database initialized. "
+            f"course_resource_total={total_resources}, resource_center_total={center_total}"
+        )
 
 
 if __name__ == "__main__":

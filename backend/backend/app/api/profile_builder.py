@@ -68,7 +68,10 @@ def _first_match(text: str, patterns: tuple[str, ...], fallback: str) -> str:
 def _extract_major(introduction: str) -> str:
     major = _first_match(
         introduction,
-        (r"(?:我是|我读|就读于?|专业是|专业为|学的是)?\s*([^，,。；;\s]{2,24}?)专业",),
+        (
+            r"(?:我是|我读|就读于?|专业是|专业为|学的是)?\s*([^，,。；;\s]{2,24}?)专业",
+            r"(?:我是|我读|就读于?|专业是|专业为|学的是)?\s*([^，,。；;\s]{2,24}?)(?=大[一二三四五]学生|大[一二三四五]|[一二三四五六七八九]年级)",
+        ),
         "",
     )
     return re.sub(r"^(?:我是|我读|就读于?)", "", major).strip()

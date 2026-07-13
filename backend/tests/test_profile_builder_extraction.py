@@ -60,6 +60,20 @@ class ProfileBuilderExtractionTest(unittest.TestCase):
         )
         self.assertEqual(len(profile), 8)
 
+    def test_extracts_major_when_introduction_omits_major_suffix(self) -> None:
+        profile = _build_profile(
+            [
+                "我是软件工程大二学生，正在学习人工智能课程。",
+                "掌握机器学习基础。",
+                "卷积神经网络、反向传播和模型评估比较薄弱。",
+            ]
+        )
+
+        self.assertEqual(profile["major"], "软件工程")
+        self.assertEqual(profile["grade"], "大二")
+        self.assertEqual(profile["course"], "人工智能")
+        self.assertEqual(profile["weak_points"], ["卷积神经网络", "反向传播", "模型评估"])
+
 
 if __name__ == "__main__":
     unittest.main()

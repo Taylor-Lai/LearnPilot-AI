@@ -99,7 +99,7 @@ def reset_admin_account(email: str, username: str, password: str) -> dict:
         user.nickname = user.nickname or normalized_username
         user.email = normalized_email
         user.password_hash = hash_password(password)
-        user.role = "ADMIN"
+        user.role = "admin"
         user.is_admin = True
         user.status = "active"
 

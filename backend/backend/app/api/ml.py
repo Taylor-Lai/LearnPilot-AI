@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.api.path import PathGenerateRequest, generate_path
 from backend.app.api.profile import latest_profile, profile_payload, upsert_profile
-from backend.app.api.profile_builder import _build_profile
+from backend.app.api.profile_builder import _build_profile, _extract_weak_points
 from backend.app.core.database import get_db
 from backend.app.core.security import optional_user
 from backend.app.models import MLProfileAnswer, User
@@ -193,11 +193,27 @@ def _normalize_cognitive_style(answer: str) -> str:
 
 
 def _knowledge_level_from_foundation(answer: str) -> str:
-    if any(keyword in answer for keyword in ("基础弱", "比较弱", "零基础")):
+    normalized = answer.strip().lower()
+    if any(keyword in normalized for keyword in ("advanced", "高级", "熟练", "精通")):
+        return "advanced"
+    if any(keyword in normalized for keyword in ("intermediate", "中级", "进阶")):
+        return "intermediate"
+    if any(keyword in normalized for keyword in ("beginner", "入门", "初学", "新手", "零基础")):
+        return "beginner"
+    if any(keyword in normalized for keyword in ("foundation", "基础弱", "比较弱", "基础阶段")):
         return "foundation"
-    if any(keyword in answer for keyword in ("学过", "了解")):
-        return "basic"
-    return "unknown"
+    if any(keyword in normalized for keyword in ("basic", "具备", "基础", "学过", "了解")):
+        return "foundation"
+    return "beginner"
+
+
+def _learning_stage_from_level(level: str) -> str:
+    return {
+        "beginner": "foundation",
+        "foundation": "practice",
+        "intermediate": "integration",
+        "advanced": "project",
+    }.get(level, "foundation")
 
 
 def _preference_items(answer: str) -> list[str]:
@@ -260,7 +276,7 @@ def _feedback_dashboard(answer: str) -> dict:
 
 def _dashboard_from_answers(profile: dict, answers: list[AnswerItem]) -> dict:
     answer_map = _answers_by_id(answers)
-    foundation = answer_map.get("foundation", "")
+    foundation = answer_map.get("foundation") or answer_map.get("knowledge_level", "")
     weak_points = list(profile.get("weak_points") or [])
     preference_text = profile.get("preference") or answer_map.get("preference", "")
     preferences = _preference_items(preference_text)
@@ -275,13 +291,20 @@ def _dashboard_from_answers(profile: dict, answers: list[AnswerItem]) -> dict:
     if cognition_main == "循序渐进型" and len(preferences) >= 2 and not answer_map.get("style"):
         cognition_main = "综合型"
 
+    knowledge = _knowledge_dashboard(foundation)
+    mastery = profile.get("mastery") or {}
+    for item in knowledge:
+        if item["name"] in mastery:
+            item["value"] = round(float(mastery[item["name"]]) * 100)
+
     weak_text = "、".join(weak_points) or "核心知识点"
+    goal_text = str(profile.get("goal") or "提升学习效果").rstrip("。.!！")
     return {
         "goal": {
             "progress": 70,
             "analysis": "当前目标明确，适合按照知识点分阶段推进。",
         },
-        "knowledge": _knowledge_dashboard(foundation),
+        "knowledge": knowledge,
         "weakPoints": _weak_point_risks(weak_points),
         "preferences": preferences,
         "cognition": {
@@ -296,7 +319,7 @@ def _dashboard_from_answers(profile: dict, answers: list[AnswerItem]) -> dict:
         "forgettingRisk": forgetting_risk,
         "feedback": feedback,
         "summary": (
-            f"该学生专业方向为{profile.get('major') or '当前课程'}，目标是{profile.get('goal') or '提升学习效果'}。"
+            f"该学生专业方向为{profile.get('major') or '当前课程'}，目标是{goal_text}。"
             f"建议围绕{weak_text}生成讲义、练习题和代码案例。"
         ),
     }
@@ -319,7 +342,7 @@ def _profile_from_answers(answers: list[AnswerItem]) -> dict:
         elif question_id == "goal":
             profile["goal"] = answer
         elif question_id in {"weak_points", "weakness"}:
-            profile["weak_points"] = _split_weak_points(answer)
+            profile["weak_points"] = _extract_weak_points(answer, use_full_answer=True)
         elif question_id == "preference":
             profile["preference"] = answer
         elif question_id in {"style", "cognitive_style"}:
@@ -333,6 +356,7 @@ def _profile_from_answers(answers: list[AnswerItem]) -> dict:
         profile["cognitive_style"] = "综合型"
     profile["cognitive_style"] = profile.get("cognitive_style") or "循序渐进型"
     profile["knowledge_level"] = profile.get("knowledge_level") or "unknown"
+    profile["learning_stage"] = _learning_stage_from_level(profile["knowledge_level"])
     return profile
 
 
@@ -343,9 +367,16 @@ def get_current_ml_profile(
     current_user: User | None = Depends(optional_user),
 ) -> dict:
     user_id = _resolved_user_id(current_user, userId)
+    profile = profile_payload(latest_profile(db, user_id))
+    dashboard_answers = [
+        AnswerItem(question_id="knowledge_level", answer=profile.get("knowledge_level") or ""),
+        AnswerItem(question_id="preference", answer=profile.get("preference") or ""),
+        AnswerItem(question_id="cognitive_style", answer=profile.get("cognitive_style") or ""),
+    ]
     return {
         "userId": str(user_id),
-        "profile": profile_payload(latest_profile(db, user_id)),
+        "profile": profile,
+        "dashboard": _dashboard_from_answers(profile, dashboard_answers),
     }
 
 
@@ -390,6 +421,11 @@ def generate_ml_profile(
     profile["preference"] = profile["preference"] or "混合资源"
     profile["cognitive_style"] = profile["cognitive_style"] or "循序渐进型"
     dashboard = _dashboard_from_answers(profile, payload.answers)
+    profile["mastery"] = {item["name"]: item["value"] / 100 for item in dashboard["knowledge"]}
+    engagement_values = [item["value"] for item in dashboard["engagement"]]
+    profile["engagement_score"] = round(sum(engagement_values) / len(engagement_values) / 100, 4)
+    risk_values = [item["value"] for item in dashboard["forgettingRisk"]]
+    profile["forgetting_risk"] = round(max(risk_values, default=0) / 100, 4)
     try:
         _save_answers(db, session_id, user_id, payload.answers)
         db_profile = upsert_profile(db, user_id, profile)

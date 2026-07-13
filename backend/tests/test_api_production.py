@@ -207,6 +207,15 @@ class ProductionApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("items", response.json())
 
+        statistics = self.client.get("/admin/statistics", headers={"Authorization": f"Bearer {admin['access_token']}"})
+        self.assertEqual(statistics.status_code, 200)
+        payload = statistics.json()
+        self.assertIn("overview", payload)
+        self.assertIn("trends", payload)
+        self.assertIn("distributions", payload)
+        self.assertGreaterEqual(payload["overview"]["userCount"], 2)
+        self.assertEqual(len(payload["trends"]["dates"]), 7)
+
     def test_assessment_is_graded_by_backend_and_history_is_private(self) -> None:
         account = self.client.post(
             "/api/auth/register",

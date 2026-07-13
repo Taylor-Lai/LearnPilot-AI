@@ -267,11 +267,29 @@ const totalPages = computed(() => {
   return Math.max(1, Math.ceil(total.value / queryForm.pageSize))
 })
 
+const formatDate = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 const loadFeedback = async () => {
   loading.value = true
   try {
     const response = await getAdminFeedback({ ...queryForm })
-    feedbackList.value = Array.isArray(response.items) ? response.items : []
+    feedbackList.value = Array.isArray(response.items)
+      ? response.items.map((item) => ({
+          ...item,
+          createTime: formatDate(item.createTime || item.created_at),
+        }))
+      : []
     total.value = Number(response.total) || 0
   } catch (error) {
     alert(`反馈加载失败：${error.message}`)

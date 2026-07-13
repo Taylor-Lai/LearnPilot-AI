@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -12,12 +12,14 @@ from backend.app.api.feedback import feedback_payload
 from backend.app.core.database import get_db
 from backend.app.core.security import get_current_user
 from backend.app.models import (
+    EvaluationResult,
     LearningPath,
     PathFeedback,
     PlatformSetting,
     ProducerArtifact,
     ProducerTask,
     ResourceCenter,
+    StudentProfile,
     SystemFeedback,
     User,
 )
@@ -166,7 +168,7 @@ def _producer_task_detail(db: Session, task: ProducerTask) -> dict:
         "artifacts": artifact_items,
         "resultSummary": {
             "topic": result.get("topic") or task.topic,
-            "agentTraceCount": len(result.get("agent_trace") or []),
+            "agentTraceCount": len(result.get("agent_traces") or result.get("agent_trace") or []),
             "requestedTypes": result.get("types") or result.get("requested_types") or [],
             "artifactTypes": [item["artifactType"] for item in artifact_items],
         },
@@ -309,19 +311,101 @@ def statistics(
     db: Session = Depends(get_db),
     _: User = Depends(_require_admin),
 ) -> dict:
-    today_start = datetime.combine(datetime.now().date(), time.min)
-    try:
-        today_user_count = int(db.query(User).filter(User.created_at >= today_start).count())
-    except Exception:
-        today_user_count = 0
+    today = datetime.now().date()
+    today_start = datetime.combine(today, time.min)
+    seven_days_start = datetime.combine(today - timedelta(days=6), time.min)
+
+    users = db.query(User).all()
+    profiles = db.query(StudentProfile).all()
+    paths = db.query(LearningPath).filter(LearningPath.status != "deleted").all()
+    evaluations = db.query(EvaluationResult).all()
+    tasks = db.query(ProducerTask).all()
+    resources = db.query(ResourceCenter).all()
+
+    def recent(items) -> list:
+        return [item for item in items if item.created_at and item.created_at >= seven_days_start]
+
+    def evaluation_score(item: EvaluationResult) -> float:
+        assessment = (item.profile_update or {}).get("assessment") or {}
+        accuracy = assessment.get("accuracy")
+        return float(accuracy) * 100 if accuracy is not None else float(item.mastery_score or 0) * 100
+
+    active_paths = [item for item in paths if item.status in {"active", "in_progress"}]
+    completed_paths = [item for item in paths if item.status == "completed"]
+    completed_tasks = [item for item in tasks if item.status == "completed"]
+    published_resources = [item for item in resources if item.status == "published"]
+    scores = [evaluation_score(item) for item in evaluations]
+    profile_users = {item.user_id for item in profiles}
+
+    dates = [(today - timedelta(days=offset)) for offset in range(6, -1, -1)]
+
+    def daily_counts(items) -> list[int]:
+        return [sum(1 for item in items if item.created_at and item.created_at.date() == day) for day in dates]
+
+    producer_status_labels = (
+        ("pending", "待处理"),
+        ("running", "执行中"),
+        ("completed", "已完成"),
+        ("failed", "失败"),
+    )
+    score_buckets = [
+        {"name": "0-59", "value": sum(score < 60 for score in scores)},
+        {"name": "60-79", "value": sum(60 <= score < 80 for score in scores)},
+        {"name": "80-89", "value": sum(80 <= score < 90 for score in scores)},
+        {"name": "90-100", "value": sum(score >= 90 for score in scores)},
+    ]
+    resource_type_labels = {"document": "文档", "ppt": "PPT", "video": "视频"}
+    resource_type_counts: dict[str, int] = {}
+    for item in resources:
+        label = resource_type_labels.get((item.resource_type or "").lower(), item.resource_type or "其他")
+        resource_type_counts[label] = resource_type_counts.get(label, 0) + 1
+
+    user_count = len(users)
     return {
-        "userCount": _safe_count(db, User),
-        "resourceCount": _safe_count(db, ResourceCenter),
-        "pathCount": _safe_count(db, LearningPath),
-        "feedbackCount": _safe_count(db, PathFeedback) + _safe_count(db, SystemFeedback),
-        "producerTaskCount": _safe_count(db, ProducerTask),
-        "todayUserCount": today_user_count,
-        "todayResourceViewCount": 0,
+        "overview": {
+            "userCount": user_count,
+            "todayUserCount": sum(bool(item.created_at and item.created_at >= today_start) for item in users),
+            "last7DaysUserCount": len(recent(users)),
+            "profileUserCount": len(profile_users),
+            "profileCoverageRate": round(len(profile_users) * 100 / user_count, 1) if user_count else 0.0,
+            "pathCount": len(paths),
+            "activePathCount": len(active_paths),
+            "completedPathCount": len(completed_paths),
+            "averagePathProgress": round(sum(float(item.progress or 0) for item in paths) / len(paths), 1)
+            if paths
+            else 0.0,
+            "last7DaysPathCount": len(recent(paths)),
+            "evaluationCount": len(evaluations),
+            "averageEvaluationScore": round(sum(scores) / len(scores), 1) if scores else 0.0,
+            "last7DaysEvaluationCount": len(recent(evaluations)),
+            "producerTaskCount": len(tasks),
+            "producerCompletedCount": len(completed_tasks),
+            "producerFailedCount": sum(item.status == "failed" for item in tasks),
+            "producerRunningCount": sum(item.status == "running" for item in tasks),
+            "producerPendingCount": sum(item.status == "pending" for item in tasks),
+            "producerSuccessRate": round(len(completed_tasks) * 100 / len(tasks), 1) if tasks else 0.0,
+            "last7DaysProducerTaskCount": len(recent(tasks)),
+            "resourceCount": len(resources),
+            "publishedResourceCount": len(published_resources),
+            "last7DaysResourceCount": len(recent(resources)),
+            "feedbackCount": _safe_count(db, PathFeedback) + _safe_count(db, SystemFeedback),
+            "todayResourceViewCount": 0,
+        },
+        "trends": {
+            "dates": [item.strftime("%m-%d") for item in dates],
+            "newUsers": daily_counts(users),
+            "newPaths": daily_counts(paths),
+            "newEvaluations": daily_counts(evaluations),
+            "newProducerTasks": daily_counts(tasks),
+        },
+        "distributions": {
+            "producerStatus": [
+                {"name": label, "value": sum(item.status == value for item in tasks)}
+                for value, label in producer_status_labels
+            ],
+            "evaluationScoreBuckets": score_buckets,
+            "resourceType": [{"name": name, "value": value} for name, value in sorted(resource_type_counts.items())],
+        },
     }
 
 

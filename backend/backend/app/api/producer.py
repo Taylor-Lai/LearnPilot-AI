@@ -169,26 +169,21 @@ def _video_items(db: Session, topic: str) -> list[dict]:
 
 
 def _python_code(topic: str) -> str:
-    return f'''def explain_topic(name):
-    steps = [
-        "明确输入与输出",
-        "拆解核心原理",
-        "运行最小案例",
-        "记录结果并复盘",
-    ]
-    return {{"topic": name, "steps": steps}}
+    topic_literal = repr(topic)
+    steps_literal = repr(["明确输入与输出", "拆解核心原理", "运行最小案例", "记录结果并复盘"])
+    return f"""topic = {topic_literal}
+steps = {steps_literal}
 
-
-result = explain_topic("{topic}")
-print(result)
-'''
+# 在线环境采用安全模式，因此直接输出可验证的结构化结果。
+print({{"topic": {topic_literal}, "steps": {steps_literal}}})
+"""
 
 
 def _code_items(topic: str, language: str) -> list[dict]:
     normalized = language.lower()
     if normalized in {"javascript", "js"}:
         code = (
-            f'const topic = "{topic}";\n'
+            f"const topic = {json.dumps(topic, ensure_ascii=False)};\n"
             'const steps = ["明确输入输出", "理解核心原理", "完成最小案例", "复盘结果"];\n'
             "console.log({ topic, steps });\n"
         )

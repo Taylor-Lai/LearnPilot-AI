@@ -182,7 +182,13 @@ class LLMAdapter:
     ) -> dict:
         profile = profile or {}
         course = profile.get("course") or "当前课程"
-        level = profile.get("knowledge_level") or "当前水平"
+        raw_level = profile.get("knowledge_level") or "当前水平"
+        level = {
+            "beginner": "入门",
+            "foundation": "基础",
+            "intermediate": "进阶",
+            "advanced": "高级",
+        }.get(str(raw_level).lower(), raw_level)
         weak_points = profile.get("weak_points") or []
         weak_text = "、".join(str(item) for item in weak_points[:3]) if weak_points else "基础概念"
 
@@ -195,14 +201,15 @@ class LLMAdapter:
         history_hint = ""
         if history:
             history_hint = f" 结合你刚才的对话（最近 {min(len(history), 10)} 条），"
+        explanation = self._offline_tutor_explanation(question)
 
         return {
             "answer": (
                 f"## 问题理解\n\n"
                 f"你问的是：**{question}**。{history_hint}我会按 **{level}** 水平、结合 **{course}** 来讲解。\n\n"
                 f"## 核心回答\n\n"
-                f"建议先把问题拆成三部分：涉及的概念、已知条件、期望结论。针对“{question}”，"
-                f"可以先回顾与 **{weak_text}** 相关的定义，再用一个最小例子验证自己的理解。\n\n"
+                f"{explanation}\n\n"
+                f"结合你的薄弱点 **{weak_text}**，建议再用一个最小例子验证上述过程。\n\n"
                 f"## 参考资料\n\n{evidence_section}"
             ),
             "hints": [
@@ -212,3 +219,38 @@ class LLMAdapter:
             ],
             "next_action": f"围绕“{question}”完成一个 5 分钟小练习，并写下推理过程。",
         }
+
+    def _offline_tutor_explanation(self, question: str) -> str:
+        lowered = question.lower()
+        if "卷积" in question or "cnn" in lowered:
+            return (
+                "卷积层能提取局部特征，核心在于 **局部连接、权重共享和逐层组合**。"
+                "卷积核一次只观察输入的一小块感受野，因而会对边缘、纹理等局部模式产生响应；"
+                "同一组权重在整幅输入上滑动，使同一种模式无论出现在哪里都能被识别。"
+                "经过激活和多层堆叠，浅层局部特征会逐步组合成形状、部件乃至完整对象。"
+            )
+        if "反向传播" in question or "backprop" in lowered:
+            return (
+                "反向传播先在前向计算中得到预测与损失，再按链式法则从输出层向输入层计算每个参数对损失的梯度。"
+                "优化器随后沿梯度反方向更新参数。它并不是把误差原样传回去，而是计算每个局部运算对最终误差应承担的影响。"
+            )
+        if "梯度下降" in question:
+            return (
+                "梯度下降把损失函数看作地形：梯度指出当前位置上升最快的方向，因此参数沿其反方向移动。"
+                "学习率控制每一步的距离；过大会越过低点，过小则收敛缓慢。"
+            )
+        if "过拟合" in question or "欠拟合" in question:
+            return (
+                "欠拟合表示模型连训练数据的规律都没有学好，训练误差和验证误差通常都高；"
+                "过拟合表示模型记住了训练细节，训练误差低但验证误差明显升高。"
+                "可分别通过提高模型能力，或增加数据、正则化、早停等方式处理。"
+            )
+        if "机器学习" in question:
+            return (
+                "机器学习通过数据学习输入到输出之间的规律，而不是为每种情况手写规则。"
+                "一个完整流程通常包括定义任务、准备数据、训练模型、在独立数据上评估，以及根据误差继续迭代。"
+            )
+        return (
+            "先明确问题涉及的概念、已知条件和期望结论，再把推理拆成可验证的小步骤。"
+            "每一步都应说明为什么成立，并用数值、图示或最小代码案例检查结论。"
+        )

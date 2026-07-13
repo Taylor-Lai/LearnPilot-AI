@@ -13,11 +13,13 @@ from backend.app.agents.review_agent import ReviewAgent
 from backend.app.agents.tutor_agent import TutorAgent
 from backend.app.models import (
     ChatMessage,
+    CourseResource,
     EvaluationResult,
     FeedbackEvent,
     LearningPath,
     LearningPathNode,
     LearningResource,
+    ResourceCenter,
     ResourceChunk,
     StudentProfile,
     StudentWeakness,
@@ -587,10 +589,7 @@ class LearningService:
             db.flush()
 
             evidence = self._retrieve_tutor_evidence(db, question, limit=3)
-            enriched_history = list(history or [])
-            if evidence:
-                enriched_history.append("课程证据：" + " | ".join(item["snippet"] for item in evidence))
-            answer = self.tutor_agent.run(question, profile, enriched_history)
+            answer = self.tutor_agent.run(question, profile, list(history or []), evidence)
             if evidence:
                 answer["evidence"] = evidence
             assistant_message = ChatMessage(
@@ -701,7 +700,22 @@ class LearningService:
             raise
 
     def _retrieve_tutor_evidence(self, db: Session, question: str, limit: int = 3) -> list[dict]:
-        tokens = [token for token in question.replace("？", " ").replace("?", " ").split() if token]
+        known_terms = (
+            "CNN",
+            "卷积神经网络",
+            "卷积层",
+            "卷积",
+            "池化",
+            "反向传播",
+            "梯度下降",
+            "决策树",
+            "支持向量机",
+            "聚类",
+            "过拟合",
+            "机器学习",
+        )
+        tokens = [term for term in known_terms if term.casefold() in question.casefold()]
+        tokens.extend(token for token in question.replace("？", " ").replace("?", " ").split() if token)
         query = db.query(ResourceChunk)
         chunks = query.limit(80).all()
         scored = []
@@ -710,14 +724,54 @@ class LearningService:
             if score or any(char in chunk.content for char in question[:12]):
                 scored.append((score, chunk))
         scored.sort(key=lambda item: item[0], reverse=True)
-        return [
+        evidence = [
             {
                 "chunk_id": chunk.id,
                 "resource_id": chunk.resource_id,
+                "title": f"课程资源 {chunk.resource_id}",
+                "source": f"resource_chunk:{chunk.id}",
                 "snippet": chunk.content[:180],
             }
             for _, chunk in scored[:limit]
         ]
+        if evidence:
+            return evidence
+
+        resource_candidates = []
+        for resource in db.query(CourseResource).limit(80).all():
+            text = f"{resource.title} {resource.content or ''}"
+            score = sum(len(token) for token in tokens if token.casefold() in text.casefold())
+            if score:
+                resource_candidates.append(
+                    (
+                        score,
+                        {
+                            "chunk_id": f"course-resource-{resource.id}",
+                            "resource_id": resource.id,
+                            "title": resource.title,
+                            "source": resource.source or f"course_resource:{resource.id}",
+                            "snippet": (resource.content or "")[:180],
+                        },
+                    )
+                )
+        for resource in db.query(ResourceCenter).filter(ResourceCenter.status == "published").limit(80).all():
+            text = f"{resource.title} {resource.description or ''} {resource.content or ''}"
+            score = sum(len(token) for token in tokens if token.casefold() in text.casefold())
+            if score:
+                resource_candidates.append(
+                    (
+                        score,
+                        {
+                            "chunk_id": f"resource-center-{resource.id}",
+                            "resource_id": resource.id,
+                            "title": resource.title,
+                            "source": f"resource_center:{resource.id}",
+                            "snippet": (resource.content or resource.description or "")[:180],
+                        },
+                    )
+                )
+        resource_candidates.sort(key=lambda item: item[0], reverse=True)
+        return [item for _, item in resource_candidates[:limit]]
 
     def _knowledge_points_from_path(self, db: Session, path_id: int | None) -> list[str]:
         if path_id is None:
