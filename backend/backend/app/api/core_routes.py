@@ -121,7 +121,7 @@ def health() -> dict:
     ml_status = False
     if settings.use_ml_service:
         try:
-            ml_status = MLServiceClient(timeout=2.0).health().get("status") == "ok"
+            ml_status = MLServiceClient(timeout=0.2).health().get("status") == "ok"
         except Exception:
             ml_status = False
     redis_status = _check_redis(settings.redis_url)
@@ -355,10 +355,18 @@ def submit_evaluation(
 ) -> EvaluationSubmitResponse:
     user_id = resolve_user_id(payload.user_id, current_user)
     wrong_items: list[dict] = []
+    assessed_knowledge_points: list[str] = []
+    evaluation_course_id = payload.course_id
     if payload.answers:
         question_ids = [item.question_id for item in payload.answers]
         questions = db.query(Question).filter(Question.id.in_(question_ids)).all()
         question_map = {item.id: item for item in questions}
+        if questions:
+            evaluation_course_id = evaluation_course_id or questions[0].course_id
+            point_ids = {item.knowledge_point_id for item in questions if item.knowledge_point_id}
+            assessed_knowledge_points = [
+                item.name for item in db.query(KnowledgePoint).filter(KnowledgePoint.id.in_(point_ids)).all()
+            ]
         correct_count = 0
         for submitted in payload.answers:
             question = question_map.get(submitted.question_id)
@@ -411,6 +419,8 @@ def submit_evaluation(
         total_count,
         payload.completed_resource_count,
         payload.study_minutes,
+        course_id=evaluation_course_id,
+        assessed_knowledge_points=assessed_knowledge_points,
     )
     accuracy = correct_count / total_count
     evaluation.profile_update = {
@@ -432,6 +442,7 @@ def submit_evaluation(
         profile_update=evaluation.profile_update or {},
         path_adjustment=(evaluation.profile_update or {}).get("path_adjustment"),
         updated_profile=(evaluation.profile_update or {}).get("mastery") and evaluation.profile_update,
+        adaptation=(evaluation.profile_update or {}).get("adaptation"),
         score=round(accuracy * 100, 1),
         accuracy=accuracy,
         correct_count=correct_count,
@@ -515,7 +526,7 @@ def _check_redis(redis_url: str) -> bool:
     try:
         import redis
 
-        client = redis.Redis.from_url(redis_url, socket_connect_timeout=1, socket_timeout=1)
+        client = redis.Redis.from_url(redis_url, socket_connect_timeout=0.15, socket_timeout=0.15)
         return bool(client.ping())
     except Exception:
         return False

@@ -21,6 +21,7 @@ from backend.app.core.database import (
 )
 
 settings = get_settings()
+settings.validate_runtime()
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 logger = logging.getLogger("learnpilot.backend")
 
@@ -64,10 +65,20 @@ async def add_request_context(request: Request, call_next):
         logger.exception("request failed", extra={"request_id": request_id})
         return JSONResponse(
             status_code=500,
-            content={"error": {"code": "internal_error", "message": str(exc), "request_id": request_id}},
+            content={
+                "error": {
+                    "code": "internal_error",
+                    "message": str(exc) if settings.app_debug else "Internal server error",
+                    "request_id": request_id,
+                }
+            },
         )
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Process-Time"] = f"{time.perf_counter() - start:.4f}"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     logger.info("%s %s %s", request.method, request.url.path, response.status_code)
     return response
 

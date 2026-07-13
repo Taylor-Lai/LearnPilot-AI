@@ -65,6 +65,18 @@ class Settings(BaseSettings):
             return ["*"]
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
+    def validate_runtime(self) -> None:
+        if self.app_env.lower() != "production":
+            return
+        if self.jwt_secret_key in {"change-me-in-production", "replace-with-a-long-random-secret"}:
+            raise ValueError("JWT_SECRET_KEY must be replaced in production")
+        if len(self.jwt_secret_key) < 32:
+            raise ValueError("JWT_SECRET_KEY must contain at least 32 characters in production")
+        if self.cors_origins.strip() == "*":
+            raise ValueError("CORS_ORIGINS must list trusted origins in production")
+        if self.app_debug:
+            raise ValueError("APP_DEBUG must be false in production")
+
 
 @lru_cache
 def get_settings() -> Settings:

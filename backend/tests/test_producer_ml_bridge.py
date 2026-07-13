@@ -16,6 +16,7 @@ class ProducerMlBridgeTest(unittest.TestCase):
         local_result = {
             "topic": "CNN",
             "lecture": {"title": "旧讲义", "content": "旧内容"},
+            "videos": [],
             "agent_traces": [{"agent": "本地生成器"}],
         }
         ml_result = {
@@ -41,6 +42,14 @@ class ProducerMlBridgeTest(unittest.TestCase):
                                     }
                                 ]
                             },
+                            "video_storyboard": {
+                                "scenes": [
+                                    {
+                                        "visual": "卷积核移动",
+                                        "narration": "观察卷积核如何提取局部特征。",
+                                    }
+                                ]
+                            },
                         },
                     },
                     "quality_check": {"passed": True},
@@ -60,6 +69,8 @@ class ProducerMlBridgeTest(unittest.TestCase):
         self.assertIn("mindmap", merged["mind_map"]["content"])
         self.assertTrue(merged["generation_quality"]["passed"])
         self.assertEqual(len(merged["agent_traces"]), 2)
+        self.assertTrue(merged["videos"][0]["generated"])
+        self.assertIn("卷积核移动", merged["videos"][0]["animation_html"])
 
 
 if __name__ == "__main__":

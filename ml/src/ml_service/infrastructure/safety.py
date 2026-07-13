@@ -39,6 +39,18 @@ class ContentSafetyGuard:
         (re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I), "[已脱敏邮箱]"),
         (re.compile(r"(?<!\d)\d{17}[0-9Xx](?!\d)"), "[已脱敏证件号]"),
     )
+    _blocked_patterns = (
+        (
+            "harmful_instruction",
+            re.compile(r"(教我|告诉我|生成|提供|写出).{0,16}(制作炸弹|自杀方法|窃取密码|勒索软件|入侵他人|投毒步骤)"),
+        ),
+        (
+            "academic_misconduct",
+            re.compile(r"(替我|帮我|直接).{0,12}(完成考试|考试作弊|代写论文|写期末论文|给出考试答案)"),
+        ),
+    )
+
+    BLOCKING_VIOLATIONS = frozenset({"harmful_instruction", "academic_misconduct"})
 
     def sanitize_text(self, text: str) -> tuple[str, SafetyReview]:
         sanitized = str(text)
@@ -49,6 +61,12 @@ class ContentSafetyGuard:
             sanitized, count = pattern.subn("[已移除不可信指令]", sanitized)
             if count:
                 violations.append("prompt_injection")
+                redactions += count
+
+        for category, pattern in self._blocked_patterns:
+            sanitized, count = pattern.subn("[已拒绝不安全请求]", sanitized)
+            if count:
+                violations.append(category)
                 redactions += count
 
         for category, patterns in (("secret", self._secret_patterns), ("personal_data", self._pii_patterns)):
@@ -103,3 +121,6 @@ class ContentSafetyGuard:
     def review_payload(self, payload: Any) -> SafetyReview:
         _, review = self.sanitize_payload(payload)
         return review
+
+    def should_refuse(self, review: SafetyReview) -> bool:
+        return any(item in self.BLOCKING_VIOLATIONS for item in review.violations)

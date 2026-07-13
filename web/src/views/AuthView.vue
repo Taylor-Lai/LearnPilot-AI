@@ -222,13 +222,11 @@ async function handleRegister() {
   registerLoading.value = true
 
   try {
-    const res = await register({
+    await register({
       username: registerForm.username,
       email: registerForm.email,
       password: registerForm.password,
     })
-
-    console.log('Register response:', res)
 
     registerSuccess.value = '注册成功，请登录'
     resetRegisterForm()
@@ -237,7 +235,6 @@ async function handleRegister() {
       switchToLogin()
     }, 800)
   } catch (err) {
-    console.error('Register error:', err)
     registerError.value = err?.message || '注册失败，请稍后重试'
   } finally {
     registerLoading.value = false

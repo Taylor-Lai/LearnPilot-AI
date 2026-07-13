@@ -32,6 +32,10 @@ services:
         value: 3.11.11
       - key: DATABASE_MODE
         value: sqlite
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
       - key: SQLITE_DATABASE_URL
         value: sqlite:///./learnpilot.db
       - key: USE_ML_SERVICE
@@ -54,7 +58,7 @@ services:
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: CORS_ORIGINS
-        value: "*"
+        value: https://learnpilot-web.onrender.com
 
   - type: web
     name: learnpilot-web

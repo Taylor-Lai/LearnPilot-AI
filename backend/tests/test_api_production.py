@@ -76,6 +76,9 @@ class ProductionApiTest(unittest.TestCase):
         teacher = self.client.post("/api/v1/auth/login", json={"username": "teacher1", "password": "secret123"})
         self.assertEqual(teacher.status_code, 200)
         token = teacher.json()["access_token"]
+        self.assertEqual(teacher.headers["x-content-type-options"], "nosniff")
+        self.assertEqual(teacher.headers["x-frame-options"], "DENY")
+        self.assertIn("x-request-id", teacher.headers)
 
         imported = self.client.post(
             "/api/v1/courses/1/resources/import",
@@ -160,6 +163,21 @@ class ProductionApiTest(unittest.TestCase):
         self.assertEqual(result.json()["status"], "completed")
         self.assertIn("lecture", result.json()["result"])
         self.assertTrue(result.json()["result"]["generation_fallback"])
+        animation = result.json()["result"]["videos"][0]
+        self.assertTrue(animation["generated"])
+        self.assertIn("卷积神经网络", animation["animation_html"])
+        self.assertIn("<style>", animation["animation_html"])
+        self.assertNotIn("<script", animation["animation_html"])
+
+        tutor = self.client.post(
+            "/api/v1/tutor/ask",
+            headers=owner_headers,
+            json={"question": "卷积神经网络为什么能提取局部特征？", "course_id": 1},
+        )
+        self.assertEqual(tutor.status_code, 200)
+        self.assertTrue(tutor.json()["grounded"])
+        self.assertTrue(tutor.json()["evidence"])
+        self.assertEqual(len(tutor.json()["visual_aid"]["nodes"]), 4)
 
         for file_format, signature, content_type in (
             ("docx", b"PK", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
@@ -204,12 +222,36 @@ class ProductionApiTest(unittest.TestCase):
         self.assertEqual(created.json()["status"], "pending")
         task_id = created.json()["task_id"]
 
+        stranger = self.client.post(
+            "/api/auth/register",
+            json={"username": "queue_stranger", "email": "queue-stranger@example.com", "password": "secret123"},
+        ).json()
+        stranger_headers = {"Authorization": f"Bearer {stranger['access_token']}"}
+        self.assertEqual(
+            self.client.post(f"/producer/task/{task_id}/cancel", headers=stranger_headers).status_code,
+            403,
+        )
+
+        with patch("backend.app.api.producer._cancel_queued_job"):
+            cancelled = self.client.post(f"/producer/task/{task_id}/cancel", headers=headers)
+        self.assertEqual(cancelled.status_code, 200)
+        self.assertEqual(cancelled.json()["status"], "cancelled")
+        self.assertEqual(cancelled.json()["progress"], 0)
+
+        with patch("backend.app.api.producer._enqueue_producer_task", return_value=True):
+            retried = self.client.post(f"/producer/task/{task_id}/retry", headers=headers)
+        self.assertEqual(retried.status_code, 200)
+        self.assertEqual(retried.json()["status"], "pending")
+        self.assertEqual(retried.json()["execution_mode"], "async")
+
         with self.Session() as db:
             _execute_producer_task(db, task_id)
 
         completed = self.client.get(f"/producer/task/{task_id}", headers=headers)
         self.assertEqual(completed.json()["status"], "completed")
         self.assertEqual(completed.json()["progress"], 100)
+        self.assertEqual(self.client.post(f"/producer/task/{task_id}/cancel", headers=headers).status_code, 409)
+        self.assertEqual(self.client.post(f"/producer/task/{task_id}/retry", headers=headers).status_code, 409)
 
     def test_admin_task_console_is_protected(self) -> None:
         with self.Session() as db:
@@ -283,6 +325,11 @@ class ProductionApiTest(unittest.TestCase):
         self.assertEqual(submitted.status_code, 200)
         self.assertEqual(submitted.json()["correct_count"], 1)
         self.assertEqual(submitted.json()["score"], 100.0)
+        self.assertEqual(submitted.json()["adaptation"]["strategy"], "advancement")
+        self.assertEqual(submitted.json()["adaptation"]["trigger"], "evaluation_submitted")
+        self.assertIn("CNN", submitted.json()["adaptation"]["after_mastery"])
+        self.assertEqual(submitted.json()["adaptation"]["before_mastery"]["CNN"], 0.5)
+        self.assertGreater(submitted.json()["adaptation"]["mastery_delta"]["CNN"], 0)
         evaluation_id = submitted.json()["evaluation_id"]
 
         history = self.client.get("/api/v1/evaluations/history", headers=headers)
@@ -293,6 +340,31 @@ class ProductionApiTest(unittest.TestCase):
             200,
         )
         self.assertEqual(self.client.get("/api/v1/evaluations/history").status_code, 401)
+
+    def test_failed_assessment_reduces_neutral_mastery(self) -> None:
+        account = self.client.post(
+            "/api/auth/register",
+            json={"username": "remedial_learner", "email": "remedial@example.com", "password": "secret123"},
+        ).json()
+        headers = {"Authorization": f"Bearer {account['access_token']}"}
+
+        submitted = self.client.post(
+            "/api/v1/evaluations/submit",
+            headers=headers,
+            json={
+                "course_id": 1,
+                "answers": [{"question_id": 1, "answer": "unrelated answer", "elapsed_seconds": 8}],
+                "study_minutes": 3,
+            },
+        )
+
+        self.assertEqual(submitted.status_code, 200)
+        adaptation = submitted.json()["adaptation"]
+        self.assertEqual(adaptation["strategy"], "remediation")
+        self.assertEqual(adaptation["before_mastery"]["CNN"], 0.5)
+        self.assertLess(adaptation["after_mastery"]["CNN"], 0.5)
+        self.assertLess(adaptation["mastery_delta"]["CNN"], 0)
+        self.assertIn("CNN", adaptation["weak_points"])
 
     def test_feedback_and_platform_settings_are_persisted(self) -> None:
         created = self.client.post(

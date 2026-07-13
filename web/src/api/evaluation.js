@@ -87,6 +87,7 @@ export async function submitEvaluation(data) {
   return {
     ...response,
     weak_points: response.profile_update?.weak_points || [],
+    adaptation: response.adaptation || response.profile_update?.adaptation || null,
   }
 }
 

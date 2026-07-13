@@ -199,7 +199,9 @@ class TrainableRanker:
 
     def _blend_score(self, model_score: float, rule_score: float) -> float:
         if self.meta.model_type == "lightgbm-classifier":
-            return model_score * 0.25 + rule_score * 0.75
+            # Offline behavior data is synthetic until a team dataset is supplied.
+            # Keep the explainable rule score dominant to avoid over-trusting a domain-shifted model.
+            return model_score * 0.1 + rule_score * 0.9
         if self.meta.model_type.startswith("sklearn"):
             return model_score * 0.2 + rule_score * 0.8
         if self.meta.model_type == "weighted-fallback":

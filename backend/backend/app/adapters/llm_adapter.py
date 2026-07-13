@@ -7,6 +7,7 @@ import re
 from urllib import error, request
 
 from backend.app.core.config import get_settings
+from backend.app.services.content_safety import content_safety_service
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ class LLMAdapter:
 
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.safety = content_safety_service
 
     def _setting_or_env(self, setting_name: str, env_name: str, default: str = "") -> str:
         value = getattr(self.settings, setting_name, None)
@@ -90,6 +92,7 @@ class LLMAdapter:
         return result
 
     def profile_from_text(self, text: str) -> dict:
+        text = str(self.safety.sanitize(text).value)
         generated = self._provider_json(
             "请从学生学习需求中抽取画像，严格返回 JSON，字段包括：major, grade, course, goal, "
             f"weak_points, preference, cognitive_style, knowledge_level。学习需求：{text}"
@@ -118,6 +121,14 @@ class LLMAdapter:
         }
 
     def generate_resource(self, topic: str, resource_type: str, weak_points: list[str]) -> str:
+        safe_input = self.safety.sanitize(
+            {"topic": topic, "resource_type": resource_type, "weak_points": weak_points}
+        )
+        if safe_input.refused:
+            return "该请求触发内容安全策略，系统不会生成危险操作或学术作弊材料。请改为安全、合规的学习主题。"
+        topic = str(safe_input.value["topic"])
+        resource_type = str(safe_input.value["resource_type"])
+        weak_points = [str(item) for item in safe_input.value["weak_points"]]
         generated = self._provider_json(
             "请生成教学资源，严格返回 JSON，字段为 content。要求可验证、分层讲解并避免幻觉。"
             f"主题：{topic}；资源类型：{resource_type}；薄弱点：{weak_points}"
@@ -143,13 +154,23 @@ class LLMAdapter:
         history: list[str] | None = None,
         evidence: list[dict] | None = None,
     ) -> dict:
+        safe_input = self.safety.sanitize(
+            {"question": question, "profile": profile or {}, "history": history or [], "evidence": evidence or []}
+        )
+        if safe_input.refused:
+            return self.safety.refusal(safe_input)
+        question = str(safe_input.value["question"])
+        profile = safe_input.value["profile"]
+        history = safe_input.value["history"]
+        evidence = safe_input.value["evidence"]
         generated = self._provider_json(self._build_tutor_prompt(question, profile, history, evidence))
         if generated:
-            return {
+            safe_output = self.safety.sanitize({
                 "answer": str(generated.get("answer") or ""),
                 "hints": [str(item) for item in (generated.get("hints") or []) if item],
                 "next_action": str(generated.get("next_action") or "完成一个小练习并复盘。"),
-            }
+            })
+            return safe_output.value
         return self._tutor_template_fallback(question, profile, history, evidence)
 
     def _build_tutor_prompt(

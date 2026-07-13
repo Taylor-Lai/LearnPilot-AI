@@ -177,6 +177,47 @@
           <p>{{ result.path_adjustment }}</p>
         </div>
 
+        <section v-if="result.adaptation" class="adaptation-panel">
+          <div class="adaptation-head">
+            <div>
+              <span>系统已自动调整学习方案</span>
+              <strong>{{ result.adaptation.strategy_label }}</strong>
+            </div>
+            <em>由本次评测触发</em>
+          </div>
+          <p>{{ result.adaptation.reason }}</p>
+
+          <div v-if="masteryChanges(result.adaptation).length" class="mastery-change-list">
+            <div v-for="item in masteryChanges(result.adaptation)" :key="item.point">
+              <span>{{ item.point }}</span>
+              <strong>{{ formatPercent(item.before) }} → {{ formatPercent(item.after) }}</strong>
+              <em :class="{ positive: item.delta >= 0 }">{{ item.delta >= 0 ? '+' : '' }}{{ formatPercent(item.delta) }}</em>
+            </div>
+          </div>
+
+          <div v-if="result.adaptation.revised_steps?.length" class="adapted-steps">
+            <h3>调整后的下一步</h3>
+            <ol>
+              <li v-for="step in result.adaptation.revised_steps" :key="`${step.order}-${step.title}`">
+                <span>{{ step.title }}</span>
+                <em>{{ step.estimated_minutes }} 分钟</em>
+              </li>
+            </ol>
+          </div>
+
+          <div v-if="result.adaptation.recommended_resources?.length" class="adapted-resources">
+            <h3>重新匹配的资源</h3>
+            <div>
+              <article v-for="resource in result.adaptation.recommended_resources" :key="resource.resource_id">
+                <span>{{ resource.resource_type }}</span>
+                <strong>{{ resource.title }}</strong>
+                <p>{{ resource.reason }}</p>
+              </article>
+            </div>
+            <RouterLink class="ghost-button link-button" to="/resources">查看资源库</RouterLink>
+          </div>
+        </section>
+
         <div v-if="result.wrong_items?.length" class="wrong-list">
           <h3>错题解析</h3>
           <article v-for="item in result.wrong_items" :key="item.question_id" class="wrong-item">
@@ -229,6 +270,10 @@
           <button class="ghost-button" type="button" @click="historyDetail = null">关闭</button>
         </div>
         <p class="feedback-text">{{ historyDetail.feedback }}</p>
+        <div v-if="historyDetail.profile_update?.adaptation" class="suggestion-box">
+          <h3>当次自适应调整</h3>
+          <p>{{ historyDetail.profile_update.adaptation.reason }}</p>
+        </div>
         <div v-if="historyDetail.wrong_items?.length" class="wrong-list">
           <article v-for="item in historyDetail.wrong_items" :key="item.question_id" class="wrong-item">
             <strong>{{ item.stem }}</strong>
@@ -308,6 +353,17 @@ function formatDate(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleString('zh-CN')
+}
+
+function masteryChanges(adaptation) {
+  const before = adaptation?.before_mastery || {}
+  const after = adaptation?.after_mastery || {}
+  return Object.keys({ ...before, ...after }).slice(0, 6).map((point) => ({
+    point,
+    before: Number(before[point] ?? 0),
+    after: Number(after[point] ?? 0),
+    delta: Number(adaptation?.mastery_delta?.[point] ?? 0),
+  }))
 }
 
 async function loadProfile() {
@@ -703,6 +759,93 @@ select:disabled {
   margin-top: 18px;
 }
 
+.adaptation-panel {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #c7d2fe;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f5f7ff, #ffffff);
+}
+
+.adaptation-head,
+.mastery-change-list > div,
+.adapted-steps li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adaptation-head div {
+  display: grid;
+  gap: 4px;
+}
+
+.adaptation-head span,
+.adaptation-head em,
+.mastery-change-list em,
+.adapted-steps em {
+  color: #6b7280;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.adaptation-head strong {
+  font-size: 20px;
+}
+
+.adaptation-panel > p {
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.mastery-change-list {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.mastery-change-list > div,
+.adapted-steps li {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.mastery-change-list em.positive {
+  color: #067647;
+}
+
+.adapted-steps ol {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.adapted-resources > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.adapted-resources article {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.adapted-resources article span,
+.adapted-resources article p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 12px;
+}
+
 .wrong-item {
   padding: 14px;
   border: 1px solid #fee2e2;
@@ -753,6 +896,10 @@ select:disabled {
 
   .history-item {
     flex-direction: column;
+  }
+
+  .adapted-resources > div {
+    grid-template-columns: 1fr;
   }
 }
 </style>

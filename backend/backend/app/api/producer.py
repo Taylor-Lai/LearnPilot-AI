@@ -4,6 +4,7 @@ import ast
 import io
 import json
 import re
+from html import escape
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -57,20 +58,31 @@ def _matching_resources(
     resource_types: list[str] | None = None,
     limit: int = 8,
 ) -> list[ResourceCenter]:
-    pattern = f"%{keyword.strip()}%"
     query = db.query(ResourceCenter).filter(ResourceCenter.status == "published")
     if resource_types:
         query = query.filter(ResourceCenter.resource_type.in_(resource_types))
     if keyword.strip():
-        query = query.filter(
-            or_(
-                ResourceCenter.title.ilike(pattern),
-                ResourceCenter.description.ilike(pattern),
-                ResourceCenter.content.ilike(pattern),
-                ResourceCenter.knowledge_point.ilike(pattern),
-                ResourceCenter.tags.ilike(pattern),
+        normalized = keyword.strip()
+        simplified = re.sub(r"(入门|基础|教程|课程|学习|资源|资料|讲义|详解)", " ", normalized)
+        terms = [normalized, *re.findall(r"[A-Za-z][A-Za-z0-9+-]*|[\u4e00-\u9fff]{2,}", simplified)]
+        if "卷积神经网络" in normalized:
+            terms.extend(["CNN", "卷积神经网络", "卷积"])
+        if "反向传播" in normalized:
+            terms.extend(["反向传播", "Backpropagation"])
+        terms = list(dict.fromkeys(term.strip() for term in terms if len(term.strip()) >= 2))[:8]
+        conditions = []
+        for term in terms:
+            pattern = f"%{term}%"
+            conditions.extend(
+                [
+                    ResourceCenter.title.ilike(pattern),
+                    ResourceCenter.description.ilike(pattern),
+                    ResourceCenter.content.ilike(pattern),
+                    ResourceCenter.knowledge_point.ilike(pattern),
+                    ResourceCenter.tags.ilike(pattern),
+                ]
             )
-        )
+        query = query.filter(or_(*conditions))
     return query.order_by(ResourceCenter.views.desc(), ResourceCenter.id.asc()).limit(limit).all()
 
 
@@ -173,6 +185,85 @@ def _video_items(db: Session, topic: str) -> list[dict]:
     ]
 
 
+def _generated_animation(topic: str, scenes: list[dict] | None = None) -> dict:
+    """Build a self-contained, sandbox-friendly animated micro-lesson."""
+    default_scenes = [
+        {
+            "visual": "学习目标",
+            "narration": f"先明确 {topic} 的问题边界、输入输出与学习目标。",
+        },
+        {
+            "visual": "核心概念",
+            "narration": f"把 {topic} 拆成定义、关键步骤和前后依赖，建立完整知识结构。",
+        },
+        {
+            "visual": "案例推演",
+            "narration": f"通过一个最小案例逐步观察 {topic} 中参数、过程与结果之间的关系。",
+        },
+        {
+            "visual": "易错点对比",
+            "narration": "对照错误做法与正确做法，解释错误产生的原因，而不只是记住答案。",
+        },
+        {
+            "visual": "练习与复盘",
+            "narration": f"暂停并用自己的话解释 {topic}，再完成一道迁移练习和复习清单。",
+        },
+    ]
+    source_scenes = list(scenes or [])[:5]
+    if len(source_scenes) < 5:
+        source_scenes.extend(default_scenes[len(source_scenes) :])
+    normalized_scenes = []
+    for index, item in enumerate(source_scenes, start=1):
+        normalized_scenes.append(
+            {
+                "index": index,
+                "visual": str(item.get("visual") or f"场景 {index}")[:80],
+                "narration": str(item.get("narration") or item.get("content") or "")[:260],
+            }
+        )
+    scene_markup = "".join(
+        (
+            f'<section class="scene scene-{item["index"]}">'
+            f'<span class="step">0{item["index"]} / 05</span>'
+            f'<div class="orb orb-{item["index"]}"></div>'
+            f'<h2>{escape(item["visual"])}</h2>'
+            f'<p>{escape(item["narration"])}</p>'
+            "</section>"
+        )
+        for item in normalized_scenes
+    )
+    safe_topic = escape(topic)
+    animation_html = f"""<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{safe_topic} 动画微课</title>
+<style>
+*{{box-sizing:border-box}}html,body{{height:100%;margin:0}}body{{overflow:hidden;background:#07111f;color:#f8fafc;font-family:Inter,"Microsoft YaHei",sans-serif}}
+.stage{{position:relative;height:100%;min-height:280px;background:radial-gradient(circle at 80% 15%,#164e63 0,transparent 34%),linear-gradient(135deg,#07111f,#172554)}}
+.brand{{position:absolute;z-index:8;top:22px;left:26px;font-size:12px;letter-spacing:.18em;color:#67e8f9}}.topic{{position:absolute;z-index:8;top:42px;left:26px;right:26px;margin:0;font-size:clamp(18px,3vw,32px)}}
+.scene{{position:absolute;inset:92px 24px 34px;padding:clamp(18px,4vw,42px);border:1px solid rgba(165,243,252,.22);border-radius:24px;background:rgba(15,23,42,.72);opacity:0;transform:translateY(18px) scale(.98);animation:scene 40s infinite}}
+.scene-2{{animation-delay:8s}}.scene-3{{animation-delay:16s}}.scene-4{{animation-delay:24s}}.scene-5{{animation-delay:32s}}
+.step{{color:#67e8f9;font-size:12px;letter-spacing:.12em}}h2{{margin:18px 0 12px;font-size:clamp(24px,5vw,50px)}}p{{max-width:760px;margin:0;font-size:clamp(15px,2.1vw,22px);line-height:1.75;color:#dbeafe}}
+.orb{{position:absolute;right:8%;top:18%;width:clamp(70px,16vw,150px);aspect-ratio:1;border-radius:38% 62% 65% 35%;background:linear-gradient(135deg,#22d3ee,#6366f1);filter:drop-shadow(0 0 28px rgba(34,211,238,.4));animation:float 4s ease-in-out infinite alternate}}
+.orb-2{{border-radius:50%;background:conic-gradient(#22d3ee,#818cf8,#22d3ee)}}.orb-3{{border-radius:18%;transform:rotate(18deg)}}.orb-4{{background:linear-gradient(135deg,#fb7185,#f59e0b)}}.orb-5{{background:linear-gradient(135deg,#34d399,#22d3ee)}}
+.progress{{position:absolute;z-index:9;left:0;bottom:0;height:5px;background:#22d3ee;animation:progress 40s linear infinite}}
+@keyframes scene{{0%,19%{{opacity:1;transform:none}}20%,100%{{opacity:0;transform:translateY(-14px) scale(.985)}}}}@keyframes progress{{from{{width:0}}to{{width:100%}}}}@keyframes float{{to{{transform:translateY(18px) rotate(8deg)}}}}
+@media(prefers-reduced-motion:reduce){{.scene{{animation:none;opacity:0}}.scene:first-of-type{{opacity:1}}.orb,.progress{{animation:none}}}}
+</style></head><body><main class="stage" aria-label="{safe_topic} 动画微课"><span class="brand">LEARNPILOT · GENERATED</span><h1 class="topic">{safe_topic}</h1>{scene_markup}<div class="progress"></div></main></body></html>"""
+    transcript = "\n".join(item["narration"] for item in normalized_scenes)
+    return {
+        "id": "generated-animation",
+        "title": f"{topic} 个性化动画微课",
+        "description": "依据学习目标与知识点自动生成的五幕动画讲解，包含同步文字字幕。",
+        "duration": "40 秒",
+        "level": "个性化",
+        "type": "生成动画",
+        "url": "",
+        "generated": True,
+        "animation_html": animation_html,
+        "scenes": normalized_scenes,
+        "transcript": transcript,
+    }
 def _python_code(topic: str) -> str:
     topic_literal = repr(topic)
     steps_literal = repr(["明确输入与输出", "拆解核心原理", "运行最小案例", "记录结果并复盘"])
@@ -311,7 +402,7 @@ def _build_task_result(db: Session, topic: str, requirement: str, requested_type
         "mind_map": _mind_map(topic),
         "exercises": _exercise_items(topic),
         "reading": _reading(topic, references),
-        "videos": _video_items(db, topic),
+        "videos": [_generated_animation(topic), *_video_items(db, topic)],
         "code_examples": _code_items(topic, "python"),
         "datasets": _dataset_items(topic),
         "roadmap": {"topic": topic, "nodes": _roadmap_nodes(topic)},
@@ -423,6 +514,12 @@ def _merge_ml_generation(result: dict, ml_result: dict) -> dict:
             for item in quiz["questions"]
         ]
 
+    storyboard = formats.get("video_storyboard") or {}
+    if storyboard.get("scenes"):
+        generated_video = _generated_animation(result["topic"], storyboard["scenes"])
+        existing_videos = result.get("videos") or []
+        result["videos"] = [generated_video, *[item for item in existing_videos if not item.get("generated")]]
+
     result["resource_bundle"] = bundle
     result["generation_quality"] = card.get("quality_check") or {}
     result["review_cycle"] = card.get("review_cycle") or {}
@@ -516,9 +613,19 @@ def _task_or_404(db: Session, task_id: str) -> ProducerTask:
     return task
 
 
+class ProducerTaskCancelled(Exception):
+    pass
+
+
+def _stop_if_cancelled(db: Session, task: ProducerTask) -> None:
+    db.refresh(task)
+    if task.status == "cancelled":
+        raise ProducerTaskCancelled
+
+
 def _execute_producer_task(db: Session, task_id: str) -> None:
     task = _task_or_404(db, task_id)
-    if task.status == "completed":
+    if task.status in {"completed", "cancelled"}:
         return
     seed_payload = task.result_json if isinstance(task.result_json, dict) else {}
     requested_types = _normalize_types(seed_payload.get("requested_types") or DEFAULT_TYPES)
@@ -532,6 +639,7 @@ def _execute_producer_task(db: Session, task_id: str) -> None:
         task.result_json = result
         task.progress = 45
         db.commit()
+        _stop_if_cancelled(db, task)
 
         result = _enrich_with_ml(
             db,
@@ -543,6 +651,7 @@ def _execute_producer_task(db: Session, task_id: str) -> None:
         task.result_json = result
         task.progress = 80
         db.commit()
+        _stop_if_cancelled(db, task)
 
         db.query(ProducerArtifact).filter(ProducerArtifact.task_id == task_id).delete()
         db.add_all(_artifact_rows(task_id, result, requested_types))
@@ -550,6 +659,12 @@ def _execute_producer_task(db: Session, task_id: str) -> None:
         task.status = "completed"
         task.progress = 100
         task.error_message = None
+        db.commit()
+    except ProducerTaskCancelled:
+        db.rollback()
+        cancelled_task = _task_or_404(db, task_id)
+        cancelled_task.status = "cancelled"
+        cancelled_task.error_message = None
         db.commit()
     except Exception as exc:
         db.rollback()
@@ -591,6 +706,22 @@ def _enqueue_producer_task(task_id: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def _cancel_queued_job(task_id: str) -> None:
+    settings = get_settings()
+    try:
+        from redis import Redis
+        from rq.job import Job
+
+        connection = Redis.from_url(
+            settings.redis_url,
+            socket_connect_timeout=0.35,
+            socket_timeout=0.35,
+        )
+        Job.fetch(f"producer:{task_id}", connection=connection).cancel()
+    except Exception:
+        return
 
 
 @router.post("/task")
@@ -693,6 +824,65 @@ def get_task(
         "progress": task.progress,
         "created_at": task.created_at.isoformat() if task.created_at else None,
         "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+        "error_message": task.error_message,
+    }
+
+
+@router.post("/task/{task_id}/cancel")
+def cancel_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(optional_user),
+) -> dict:
+    task = _task_or_404(db, task_id)
+    _authorize_task(task, current_user)
+    if task.status == "completed":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Completed task cannot be cancelled")
+    if task.status == "cancelled":
+        return {"task_id": task_id, "status": task.status, "progress": int(task.progress or 0)}
+    if task.status == "failed":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Failed task should be retried")
+    task.status = "cancelled"
+    task.error_message = None
+    db.commit()
+    _cancel_queued_job(task_id)
+    return {"task_id": task_id, "status": "cancelled", "progress": int(task.progress or 0)}
+
+
+@router.post("/task/{task_id}/retry")
+def retry_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(optional_user),
+) -> dict:
+    task = _task_or_404(db, task_id)
+    _authorize_task(task, current_user)
+    if task.status not in {"failed", "cancelled"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only failed or cancelled tasks can be retried",
+        )
+    existing = task.result_json if isinstance(task.result_json, dict) else {}
+    requested_types = _normalize_types(existing.get("requested_types") or DEFAULT_TYPES)
+    task.status = "pending"
+    task.progress = 0
+    task.error_message = None
+    task.result_json = {"requested_types": requested_types}
+    db.commit()
+
+    queued = _enqueue_producer_task(task_id)
+    if not queued:
+        try:
+            _execute_producer_task(db, task_id)
+        except Exception as exc:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Producer retry failed") from exc
+    db.expire_all()
+    task = _task_or_404(db, task_id)
+    return {
+        "task_id": task_id,
+        "status": task.status,
+        "progress": int(task.progress or 0),
+        "execution_mode": "async" if queued else "sync_fallback",
     }
 
 

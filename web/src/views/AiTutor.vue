@@ -117,6 +117,19 @@
                 </div>
                 <div class="explanation-body">
                   <div class="explanation-markdown" v-html="renderedExplanation"></div>
+                  <section v-if="currentVisualAid?.nodes?.length" class="visual-aid" aria-label="知识图解">
+                    <h4>{{ currentVisualAid.title || '知识图解' }}</h4>
+                    <div class="visual-flow">
+                      <template v-for="(node, index) in currentVisualAid.nodes" :key="`${node.label}-${index}`">
+                        <article class="visual-node">
+                          <span>0{{ index + 1 }}</span>
+                          <strong>{{ node.label }}</strong>
+                          <p>{{ node.detail }}</p>
+                        </article>
+                        <span v-if="index < currentVisualAid.nodes.length - 1" class="visual-arrow">→</span>
+                      </template>
+                    </div>
+                  </section>
                 </div>
                 <div class="explanation-actions">
                   <button class="action-btn" @click="copyExplanation">
@@ -160,6 +173,7 @@ const isPlaying = ref(false)
 const isVoiceEnabled = ref(true)
 const currentQuestion = ref('')
 const currentExplanation = ref('')
+const currentVisualAid = ref(null)
 const chatMessagesRef = ref(null)
 
 const messages = ref([
@@ -309,15 +323,6 @@ function normalizeTutorProfile(profile) {
   return normalizedProfile
 }
 
-function logTutorProfilePayload(normalizedProfile) {
-  console.log('tutor profile payload', normalizedProfile)
-  console.log(
-    'tutor weak_points is array:',
-    normalizedProfile?.weak_points instanceof Array,
-    normalizedProfile?.weak_points,
-  )
-}
-
 function buildChatHistory(list, maxItems = 8) {
   return list
     .filter((item) => !item.isWelcome && !item.isError)
@@ -359,7 +364,11 @@ function adaptTutorResponse(res) {
       .join('\n')}`
   }
 
-  return { message, detailedExplanation: detailed }
+  return {
+    message,
+    detailedExplanation: detailed,
+    visualAid: res?.visual_aid || null,
+  }
 }
 
 async function requestTutorAnswer(question, { appendUserMessage = true } = {}) {
@@ -383,7 +392,6 @@ async function requestTutorAnswer(question, { appendUserMessage = true } = {}) {
   try {
     const { userId, courseId } = buildTutorRequestContext()
     const normalizedProfile = normalizeTutorProfile(profile)
-    logTutorProfilePayload(normalizedProfile)
     const res = await askTutor({
       question,
       profile: normalizedProfile,
@@ -405,6 +413,7 @@ async function requestTutorAnswer(question, { appendUserMessage = true } = {}) {
 
     currentQuestion.value = question
     currentExplanation.value = adapted.detailedExplanation
+    currentVisualAid.value = adapted.visualAid
     startVoicePlay(adapted.detailedExplanation)
   } catch {
     isTyping.value = false
@@ -444,7 +453,6 @@ async function regenerateAnswer() {
     const history = buildChatHistory(messages.value)
     const { userId, courseId } = buildTutorRequestContext()
     const normalizedProfile = normalizeTutorProfile(profile)
-    logTutorProfilePayload(normalizedProfile)
     const res = await askTutor({
       question: currentQuestion.value,
       profile: normalizedProfile,
@@ -473,6 +481,7 @@ async function regenerateAnswer() {
     }
 
     currentExplanation.value = adapted.detailedExplanation
+    currentVisualAid.value = adapted.visualAid
     startVoicePlay(adapted.detailedExplanation)
     scrollToBottom()
   } catch {
@@ -1040,6 +1049,71 @@ onMounted(() => {})
   max-height: 400px;
   overflow-y: auto;
   padding-right: 8px;
+}
+
+.visual-aid {
+  margin: 22px 0 4px;
+  padding: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #eff6ff, #ecfeff);
+}
+
+.visual-aid h4 {
+  margin: 0 0 14px;
+  color: #0f172a;
+}
+
+.visual-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.visual-node {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.visual-node span {
+  display: block;
+  color: #0891b2;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.visual-node strong {
+  display: block;
+  margin: 5px 0;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.visual-node p {
+  margin: 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.visual-arrow {
+  align-self: center;
+  color: #0891b2;
+  font-weight: 900;
+}
+
+@media (max-width: 760px) {
+  .visual-flow {
+    flex-direction: column;
+  }
+
+  .visual-arrow {
+    transform: rotate(90deg);
+  }
 }
 
 /* Markdown 样式 */

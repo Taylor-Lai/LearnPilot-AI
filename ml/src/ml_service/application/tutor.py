@@ -54,6 +54,8 @@ class TutorAgent:
             profile_review,
             evidence_review,
         )
+        if self.safety_guard.should_refuse(input_review):
+            return self._finalize(self._refusal(input_review), input_review)
         fallback_point = safe_point or (safe_profile["weak_points"][0] if safe_profile["weak_points"] else None)
         fallback = self._fallback(safe_question, profile, evidence, safe_history, fallback_point)
         if isinstance(self.llm_client, TemplateLLMClient):
@@ -131,6 +133,26 @@ class TutorAgent:
             f"对话历史：\n{history_text}\n"
             f"检索证据：\n{evidence_text}"
         )
+
+    def _refusal(self, review: SafetyReview) -> dict[str, Any]:
+        academic = "academic_misconduct" in review.violations
+        return {
+            "answer": (
+                "我不能替你完成考试、论文或提供作弊答案，但可以讲解相关知识、检查你的思路并给出分层提示。"
+                if academic
+                else "我不能提供可能伤害他人、危及安全或用于未授权入侵的操作步骤。可以改为讨论安全原理、风险防范与合规实践。"
+            ),
+            "hints": ["说明你的合法学习目标", "提出具体概念问题", "提供你已尝试的思路"],
+            "follow_up_question": "你希望从哪个安全、合规的知识点开始学习？",
+            "knowledge_check": "请说明该主题应遵守的安全或学术诚信边界。",
+            "next_action": "将请求改写为概念讲解、思路检查或防御性学习问题。",
+            "evidence": [],
+            "evidence_refs": [],
+            "grounded": False,
+            "refused": True,
+            "refusal_reason": "academic_integrity" if academic else "content_safety",
+            "generation_meta": {"provider": "policy", "fallback_used": False},
+        }
 
     def _validated_result(self, generated: dict, fallback: dict, evidence: list[dict]) -> dict[str, Any]:
         valid_refs = {item["chunk_id"] for item in evidence}

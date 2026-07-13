@@ -74,6 +74,14 @@ Redis 可用时任务进入 RQ Worker，并依次持久化 `10/45/80/100` 阶段
 
 Returns status, progress, and timestamps.
 
+`POST /producer/task/{task_id}/cancel`
+
+取消本人尚未完成的排队或执行中任务，并将状态持久化为 `cancelled`。重复取消保持幂等；已完成或失败任务返回 `409`。
+
+`POST /producer/task/{task_id}/retry`
+
+重新执行本人失败或已取消的任务，沿用原任务 ID 和生成参数并将进度重置为 `0`。Redis 可用时重新进入队列，否则同步降级执行。
+
 `GET /producer/result/{task_id}`
 
 Returns the persisted multi-agent generation result.
@@ -328,7 +336,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-提交后会写入反馈事件，并在 ML 服务可用时调用 `/feedback` 更新画像和路径调整摘要。
+提交后会写入反馈事件，并自动生成可持久化的自适应结果：画像掌握度前后差异、调整策略与原因、调整后的学习步骤以及重新匹配的多类型资源。ML 服务可用时调用 `/feedback` 获取模型驱动的画像和路径变化；不可用时使用本地确定性策略完成同一响应契约。
 
 - `GET /api/v1/evaluations/history`：当前学生最近的评测记录。
 - `GET /api/v1/evaluations/{evaluation_id}`：评测详情，只允许本人或管理员读取。

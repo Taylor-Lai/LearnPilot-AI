@@ -107,6 +107,12 @@ class TutorAskResponse(BaseModel):
     answer: str
     hints: list[str]
     next_action: str
+    evidence: list[dict] = Field(default_factory=list)
+    grounded: bool = False
+    visual_aid: dict | None = None
+    safety_meta: dict | None = None
+    refused: bool = False
+    refusal_reason: str | None = None
 
 
 class AssessmentAnswer(BaseModel):
@@ -133,6 +139,7 @@ class EvaluationSubmitResponse(BaseModel):
     profile_update: dict
     path_adjustment: str | None = None
     updated_profile: dict | None = None
+    adaptation: dict | None = None
     score: float | None = None
     accuracy: float | None = None
     correct_count: int | None = None

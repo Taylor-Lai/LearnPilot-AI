@@ -16,9 +16,11 @@ from backend.app.models import (
     CourseResource,
     EvaluationResult,
     FeedbackEvent,
+    KnowledgePoint,
     LearningPath,
     LearningPathNode,
     LearningResource,
+    Question,
     ResourceCenter,
     ResourceChunk,
     StudentProfile,
@@ -592,6 +594,8 @@ class LearningService:
             answer = self.tutor_agent.run(question, profile, list(history or []), evidence)
             if evidence:
                 answer["evidence"] = evidence
+            answer["grounded"] = bool(evidence)
+            answer["visual_aid"] = self._build_tutor_visual_aid(question, profile)
             assistant_message = ChatMessage(
                 user_id=user_id,
                 role="assistant",
@@ -608,6 +612,21 @@ class LearningService:
             db.rollback()
             raise
 
+    def _build_tutor_visual_aid(self, question: str, profile: dict | None) -> dict:
+        """Return a presentation-safe concept flow without embedding executable markup."""
+        topic = question.strip().rstrip("？?。！!")[:36] or "当前知识点"
+        weak_points = list((profile or {}).get("weak_points") or [])
+        focus = str(weak_points[0])[:24] if weak_points else "关键前置概念"
+        return {
+            "title": f"{topic} · 理解路径",
+            "nodes": [
+                {"label": "前置概念", "detail": focus},
+                {"label": "核心机制", "detail": "明确条件、步骤与因果关系"},
+                {"label": "最小案例", "detail": "用数值、图示或代码验证"},
+                {"label": "迁移自测", "detail": "改变一个条件并解释结果"},
+            ],
+        }
+
     def evaluate(
         self,
         db: Session,
@@ -617,11 +636,14 @@ class LearningService:
         total_count: int,
         completed_resource_count: int,
         study_minutes: int,
+        course_id: int | None = None,
+        assessed_knowledge_points: list[str] | None = None,
     ) -> EvaluationResult:
         try:
             latest_path = db.get(LearningPath, path_id) if path_id else None
-            course_id = latest_path.course_id if latest_path else None
-            knowledge_points = self._knowledge_points_from_path(db, path_id)
+            course_id = latest_path.course_id if latest_path else course_id
+            path_points = self._knowledge_points_from_path(db, path_id)
+            knowledge_points = list(dict.fromkeys([*(assessed_knowledge_points or []), *path_points]))[:8]
             score = correct_count / total_count
             feedback_event = FeedbackEvent(
                 user_id=user_id,
@@ -656,6 +678,16 @@ class LearningService:
                         "forgetting_risk": profile.get("forgetting_risk"),
                         "path_adjustment": ml_feedback.get("path_adjustment"),
                     }
+            result["profile_update"]["adaptation"] = self._build_evaluation_adaptation(
+                db=db,
+                user_id=user_id,
+                path=latest_path,
+                course_id=course_id,
+                score=score,
+                knowledge_points=knowledge_points,
+                profile_update=result["profile_update"],
+                ml_feedback=ml_feedback,
+            )
             evaluation = EvaluationResult(
                 user_id=user_id,
                 path_id=path_id,
@@ -698,6 +730,145 @@ class LearningService:
         except Exception:
             db.rollback()
             raise
+
+    def _build_evaluation_adaptation(
+        self,
+        db: Session,
+        user_id: int,
+        path: LearningPath | None,
+        course_id: int | None,
+        score: float,
+        knowledge_points: list[str],
+        profile_update: dict,
+        ml_feedback: dict | None,
+    ) -> dict:
+        before_profile = {}
+        if isinstance(ml_feedback, dict):
+            before = ml_feedback.get("before")
+            if isinstance(before, dict) and isinstance(before.get("profile"), dict):
+                before_profile = before["profile"]
+
+        before_mastery = before_profile.get("mastery") if isinstance(before_profile.get("mastery"), dict) else {}
+        if not before_mastery:
+            latest_profile = (
+                db.query(StudentProfile)
+                .filter(StudentProfile.user_id == user_id)
+                .order_by(StudentProfile.id.desc())
+                .first()
+            )
+            if latest_profile is not None and isinstance(latest_profile.mastery, dict):
+                before_mastery = dict(latest_profile.mastery)
+        after_mastery = profile_update.get("mastery") if isinstance(profile_update.get("mastery"), dict) else {}
+        if not after_mastery:
+            target_points = knowledge_points or list(before_mastery)
+            for point in target_points:
+                before_mastery.setdefault(point, 0.5)
+            after_mastery = dict(before_mastery)
+            for point in target_points:
+                previous = float(after_mastery.get(point, 0.5))
+                after_mastery[point] = round(max(0.0, min(1.0, previous * 0.7 + score * 0.3)), 4)
+            profile_update["mastery"] = after_mastery
+        weak_points = [str(item) for item in profile_update.get("weak_points") or knowledge_points if item]
+        if not weak_points and after_mastery:
+            weak_points = [point for point, _ in sorted(after_mastery.items(), key=lambda item: item[1])[:3]]
+        profile_update["weak_points"] = weak_points
+        weak_points = list(dict.fromkeys(weak_points))[:6]
+
+        if score < 0.6:
+            strategy = "remediation"
+            strategy_label = "补弱重学"
+            reason = f"本次正确率为 {score:.0%}，优先回到薄弱知识点，补充讲解、示例和基础练习。"
+        elif score < 0.8:
+            strategy = "consolidation"
+            strategy_label = "巩固提升"
+            reason = f"本次正确率为 {score:.0%}，保留当前学习阶段并增加针对性练习与错题复盘。"
+        else:
+            strategy = "advancement"
+            strategy_label = "进阶拓展"
+            reason = f"本次正确率为 {score:.0%}，缩短基础复习并加入综合实践与进阶资源。"
+
+        point_rows = []
+        if course_id is not None:
+            point_rows = db.query(KnowledgePoint).filter(KnowledgePoint.course_id == course_id).all()
+        point_by_id = {item.id: item.name for item in point_rows}
+        resource_query = db.query(CourseResource)
+        if course_id is not None:
+            resource_query = resource_query.filter(CourseResource.course_id == course_id)
+        candidates = resource_query.order_by(CourseResource.id.asc()).all()
+
+        def resource_priority(item: CourseResource) -> tuple[int, int, int]:
+            point_name = point_by_id.get(item.knowledge_point_id, "")
+            weak_match = any(weak in point_name or point_name in weak for weak in weak_points if point_name)
+            preferred = item.resource_type in {"lecture", "exercise", "code_example", "video", "lab"}
+            return (0 if weak_match else 1, 0 if preferred else 1, item.id)
+
+        recommendations = []
+        used_types: set[str] = set()
+        for item in sorted(candidates, key=resource_priority):
+            if len(recommendations) >= 5:
+                break
+            if item.resource_type in used_types and len(candidates) > 5:
+                continue
+            used_types.add(item.resource_type)
+            recommendations.append(
+                {
+                    "resource_id": item.id,
+                    "title": item.title,
+                    "resource_type": item.resource_type,
+                    "knowledge_point": point_by_id.get(item.knowledge_point_id),
+                    "url": f"/resources/{item.id}/view",
+                    "reason": "匹配当前薄弱点" if resource_priority(item)[0] == 0 else "匹配当前学习阶段",
+                }
+            )
+
+        existing_nodes = []
+        if path is not None:
+            existing_nodes = (
+                db.query(LearningPathNode)
+                .filter(LearningPathNode.path_id == path.id, LearningPathNode.status != "completed")
+                .order_by(LearningPathNode.step_order.asc())
+                .all()
+            )
+        revised_steps = [
+            {
+                "order": index,
+                "title": title,
+                "action": strategy,
+                "estimated_minutes": 35 if strategy == "remediation" else 25,
+            }
+            for index, title in enumerate(weak_points[:3], start=1)
+        ]
+        for node in existing_nodes:
+            if len(revised_steps) >= 5:
+                break
+            if node.title not in {item["title"] for item in revised_steps}:
+                revised_steps.append(
+                    {
+                        "order": len(revised_steps) + 1,
+                        "title": node.title,
+                        "action": "continue",
+                        "estimated_minutes": node.estimated_minutes,
+                    }
+                )
+
+        shared_points = set(before_mastery) | set(after_mastery)
+        mastery_delta = {
+            point: round(float(after_mastery.get(point, 0)) - float(before_mastery.get(point, 0)), 4)
+            for point in shared_points
+        }
+        return {
+            "trigger": "evaluation_submitted",
+            "strategy": strategy,
+            "strategy_label": strategy_label,
+            "reason": reason,
+            "path_id": path.id if path else None,
+            "before_mastery": before_mastery,
+            "after_mastery": after_mastery,
+            "mastery_delta": mastery_delta,
+            "weak_points": weak_points,
+            "revised_steps": revised_steps,
+            "recommended_resources": recommendations,
+        }
 
     def _retrieve_tutor_evidence(self, db: Session, question: str, limit: int = 3) -> list[dict]:
         known_terms = (
@@ -767,6 +938,22 @@ class LearningService:
                             "title": resource.title,
                             "source": f"resource_center:{resource.id}",
                             "snippet": (resource.content or resource.description or "")[:180],
+                        },
+                    )
+                )
+        for question_item in db.query(Question).limit(80).all():
+            text = f"{question_item.stem} {question_item.explanation or ''}"
+            score = sum(len(token) for token in tokens if token.casefold() in text.casefold())
+            if score:
+                resource_candidates.append(
+                    (
+                        score,
+                        {
+                            "chunk_id": f"question-{question_item.id}",
+                            "resource_id": question_item.id,
+                            "title": "课程题库解析",
+                            "source": question_item.source or f"question:{question_item.id}",
+                            "snippet": text[:180],
                         },
                     )
                 )

@@ -6,6 +6,8 @@ from pathlib import Path
 
 from ..application.pipeline import LearningMLPipeline
 from ..domain.models import InteractionEvent, KnowledgeNode
+from ..infrastructure.ranker import FEATURE_VERSION, RankerMeta
+from ..infrastructure.safety import ContentSafetyGuard
 
 
 def recall_at_k(predicted: list[str], positives: set[str], k: int) -> float:
@@ -85,6 +87,35 @@ def grounded_generation_rate(result: dict) -> float:
     return round(grounded / len(cards), 4)
 
 
+def citation_integrity_rate(result: dict) -> float:
+    cards = result["generated_cards"]
+    if not cards:
+        return 0.0
+    valid = 0
+    for card in cards:
+        context_refs = {str(item.get("chunk_id")) for item in card.get("rag_context", []) if item.get("chunk_id")}
+        raw_refs = card.get("evidence_refs") or []
+        if isinstance(raw_refs, str):
+            refs = {part.strip() for part in raw_refs.replace("；", ";").split(";") if part.strip()}
+        else:
+            refs = {str(item) for item in raw_refs}
+        valid += bool(context_refs) and bool(refs) and refs.issubset(context_refs)
+    return round(valid / len(cards), 4)
+
+
+def factual_consistency_proxy_rate(result: dict) -> float:
+    """Evidence-backed proxy; final academic correctness still requires expert sampling."""
+    cards = result["generated_cards"]
+    if not cards:
+        return 0.0
+    consistent = sum(
+        bool(card.get("quality_check", {}).get("checks", {}).get("covers_knowledge_point"))
+        and bool(card.get("quality_check", {}).get("checks", {}).get("grounded_citations"))
+        for card in cards
+    )
+    return round(consistent / len(cards), 4)
+
+
 def multi_format_coverage_rate(result: dict) -> float:
     cards = result["generated_cards"]
     if not cards:
@@ -141,6 +172,8 @@ def run_builtin_evaluation(root: Path, write_report: bool = True) -> dict:
                 "path_prerequisite_score": path_prerequisite_score(result, pipeline.knowledge_graph),
                 "generation_quality": generation_quality(result),
                 "grounded_generation_rate": grounded_generation_rate(result),
+                "citation_integrity_rate": citation_integrity_rate(result),
+                "factual_consistency_proxy_rate": factual_consistency_proxy_rate(result),
                 "multi_format_coverage_rate": multi_format_coverage_rate(result),
                 "safe_generation_rate": safe_generation_rate(result),
                 "review_approval_rate": review_approval_rate(result),
@@ -151,7 +184,9 @@ def run_builtin_evaluation(root: Path, write_report: bool = True) -> dict:
         )
     summary = _summarize(rows)
     summary["model_meta"] = pipeline.recommendation_agent.status()
+    summary["ablations"] = _run_ranking_ablations(feedback, summary)
     summary["mastery_lift_demo"] = _mastery_lift(pipeline, feedback[0])
+    summary["safety_benchmark"] = _run_safety_benchmark(root)
     summary["details"] = rows
     if write_report:
         report_dir = root / "reports"
@@ -173,6 +208,8 @@ def _summarize(rows: list[dict]) -> dict:
         "path_prerequisite_score",
         "generation_quality",
         "grounded_generation_rate",
+        "citation_integrity_rate",
+        "factual_consistency_proxy_rate",
         "multi_format_coverage_rate",
         "safe_generation_rate",
         "review_approval_rate",
@@ -186,6 +223,96 @@ def _summarize(rows: list[dict]) -> dict:
         **{f"mean_{metric}": round(sum(row[metric] for row in rows) / max(len(rows), 1), 4) for metric in metrics},
         "random_baseline_recall@5": 0.625,
         "random_baseline_ndcg@5": 0.541,
+    }
+
+
+def _run_safety_benchmark(root: Path) -> dict:
+    path = root / "data" / "benchmarks" / "safety-cases.json"
+    cases = json.loads(path.read_text(encoding="utf-8"))
+    guard = ContentSafetyGuard()
+    rows = []
+    for case in cases:
+        sanitized, review = guard.sanitize_text(case["input"])
+        expected = set(case.get("expected_violations", []))
+        rows.append(
+            {
+                "id": case["id"],
+                "detected": sorted(review.violations),
+                "detection_passed": expected.issubset(review.violations),
+                "refusal_passed": guard.should_refuse(review) == bool(case.get("should_refuse", False)),
+                "sensitive_text_removed": all(token not in sanitized for token in case.get("must_remove", [])),
+            }
+        )
+    total = max(len(rows), 1)
+    return {
+        "samples": len(rows),
+        "detection_rate": round(sum(item["detection_passed"] for item in rows) / total, 4),
+        "refusal_accuracy": round(sum(item["refusal_passed"] for item in rows) / total, 4),
+        "redaction_success_rate": round(sum(item["sensitive_text_removed"] for item in rows) / total, 4),
+        "details": rows,
+    }
+
+
+def _ranking_only_metrics(pipeline: LearningMLPipeline, cases: list[dict], mode: str = "full") -> dict:
+    rows = []
+    for sample in cases:
+        diagnostics = dict(sample["diagnostics"])
+        preferences = list(sample.get("preferred_styles", []))
+        if mode == "uniform_mastery":
+            diagnostics = {point: 0.5 for point in diagnostics}
+        if mode == "no_preference":
+            preferences = []
+        normalized, _ = pipeline.diagnosis_agent.analyze(diagnostics)
+        profile, _ = pipeline.profile_agent.update(
+            sample["student_id"], normalized, None, None, preferences, None
+        )
+        recommendations, _ = pipeline.recommendation_agent.recommend(
+            profile, pipeline.resources, top_k=5, history=None
+        )
+        predicted = [item.resource.resource_id for item in recommendations]
+        positives = set(sample["positive_resource_ids"])
+        rows.append(
+            {
+                "recall@5": recall_at_k(predicted, positives, 5),
+                "ndcg@5": ndcg_at_k(predicted, positives, 5),
+                "map@5": map_at_k(predicted, positives, 5),
+                "mrr@5": mrr_at_k(predicted, positives, 5),
+            }
+        )
+    return {
+        metric: round(sum(row[metric] for row in rows) / max(len(rows), 1), 4)
+        for metric in ("recall@5", "ndcg@5", "map@5", "mrr@5")
+    }
+
+
+def _run_ranking_ablations(cases: list[dict], full_summary: dict) -> dict:
+    trained_pipeline = LearningMLPipeline()
+    rule_pipeline = LearningMLPipeline()
+    rule_ranker = rule_pipeline.recommendation_agent.ranker
+    rule_ranker.model = None
+    rule_ranker.weights = None
+    rule_ranker.meta = RankerMeta(
+        model_type="rule",
+        feature_version=FEATURE_VERSION,
+        trained_at=None,
+        samples=0,
+        metrics={},
+        fallback_reason="forced evaluation baseline",
+    )
+    full = {
+        metric: full_summary[f"mean_{metric}"]
+        for metric in ("recall@5", "ndcg@5", "map@5", "mrr@5")
+    }
+    rule = _ranking_only_metrics(rule_pipeline, cases)
+    no_preference = _ranking_only_metrics(trained_pipeline, cases, mode="no_preference")
+    uniform_mastery = _ranking_only_metrics(trained_pipeline, cases, mode="uniform_mastery")
+    return {
+        "trained_rule_blend": full,
+        "rule_baseline": rule,
+        "without_preference": no_preference,
+        "without_mastery_signal": uniform_mastery,
+        "ndcg_delta_vs_rule": round(full["ndcg@5"] - rule["ndcg@5"], 4),
+        "note": "The reviewed benchmark is intentionally small; synthetic holdout AUC and this ranking ablation are reported separately.",
     }
 
 
@@ -227,10 +354,15 @@ def _markdown_report(summary: dict) -> str:
         f"- Path prerequisite score: {summary['mean_path_prerequisite_score']}",
         f"- Generation quality: {summary['mean_generation_quality']}",
         f"- Grounded generation rate: {summary['mean_grounded_generation_rate']}",
+        f"- Citation integrity rate: {summary['mean_citation_integrity_rate']}",
+        f"- Factual consistency proxy rate: {summary['mean_factual_consistency_proxy_rate']}",
         f"- Multi-format coverage rate: {summary['mean_multi_format_coverage_rate']}",
         f"- Safe generation rate: {summary['mean_safe_generation_rate']}",
         f"- Review approval rate: {summary['mean_review_approval_rate']}",
         f"- Explainability rate: {summary['mean_explainability_rate']}",
         f"- Model: {summary['model_meta']['model_type']}",
+        f"- Safety detection rate: {summary['safety_benchmark']['detection_rate']}",
+        f"- Safety refusal accuracy: {summary['safety_benchmark']['refusal_accuracy']}",
+        f"- Ranking NDCG delta vs rule baseline: {summary['ablations']['ndcg_delta_vs_rule']}",
     ]
     return "\n".join(lines) + "\n"

@@ -22,6 +22,20 @@ export function getTaskResult(taskId) {
   })
 }
 
+export function cancelTask(taskId) {
+  return request({
+    url: `/producer/task/${taskId}/cancel`,
+    method: 'POST',
+  })
+}
+
+export function retryTask(taskId) {
+  return request({
+    url: `/producer/task/${taskId}/retry`,
+    method: 'POST',
+  })
+}
+
 export async function downloadTaskExport(taskId, format = 'docx') {
   const host = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
   const token = localStorage.getItem('token')
@@ -115,6 +129,8 @@ export function getDatasets(keyword) {
 
 export default {
   createTask,
+  cancelTask,
+  retryTask,
   getTaskStatus,
   getTaskResult,
   downloadTaskExport,

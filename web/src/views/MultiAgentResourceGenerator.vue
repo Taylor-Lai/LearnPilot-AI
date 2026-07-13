@@ -87,13 +87,21 @@
                   查看结果
                 </button>
                 <button
-                  v-if="item.status === 'failed'"
+                  v-if="item.status === 'failed' || item.status === 'cancelled'"
                   class="ghost-btn"
                   type="button"
                   :disabled="isTaskRunning"
-                  @click="regenerateTask(item)"
+                  @click="retryHistoryTask(item)"
                 >
-                  重新生成
+                  重试
+                </button>
+                <button
+                  v-if="item.status === 'pending' || item.status === 'running'"
+                  class="ghost-btn danger-btn"
+                  type="button"
+                  @click="cancelHistoryTask(item)"
+                >
+                  取消
                 </button>
               </div>
             </article>
@@ -229,7 +237,15 @@
                   <div v-else-if="!videos.length" class="empty-state" @click="activeKey = 'qa'">待生成，请先完成问答</div>
                   <div v-else class="video-grid">
                     <article v-for="video in pagedVideos" :key="video.id" class="video-card">
-                      <div class="video-thumb">
+                      <iframe
+                        v-if="video.animationHtml"
+                        class="animation-preview"
+                        :srcdoc="video.animationHtml"
+                        sandbox=""
+                        loading="lazy"
+                        :title="`${video.title} 播放器`"
+                      />
+                      <div v-else class="video-thumb">
                         <span>▶</span>
                         <em>{{ video.duration || '未提供' }}</em>
                       </div>
@@ -364,6 +380,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
+  cancelTask as cancelProducerTask,
   chatWithAI,
   createTask,
   downloadTaskExport,
@@ -374,6 +391,7 @@ import {
   getTaskStatus,
   getVideos,
   listTasks,
+  retryTask as retryProducerTask,
   runCode as runCodeApi,
 } from '@/api/producer'
 import {
@@ -436,6 +454,7 @@ const statusLabels = {
   running: '生成中',
   completed: '已完成',
   failed: '失败',
+  cancelled: '已取消',
 }
 
 const currentNav = computed(() => navItems.find(item => item.key === activeKey.value) || navItems[0])
@@ -679,6 +698,8 @@ function mapVideos(raw) {
     level: video.level || '',
     type: video.type || '视频',
     url: video.url || '',
+    generated: Boolean(video.generated),
+    animationHtml: video.animation_html || '',
   }))
 }
 
@@ -782,6 +803,13 @@ async function pollTaskUntilDone(taskId) {
           resolve(statusRes)
           return
         }
+        if (statusRes.status === 'cancelled') {
+          clearPollTimer()
+          taskStatus.value = 'cancelled'
+          pollTimeoutMessage.value = '任务已取消'
+          resolve(statusRes)
+          return
+        }
         pollTimer = window.setTimeout(tick, POLL_INTERVAL_MS)
       } catch (error) {
         handleTaskError(error)
@@ -825,6 +853,8 @@ async function loadTaskResult(taskId, persistSession = true) {
       await typeAiMessage(`已恢复任务「${currentTopic.value}」的生成结果，可在左侧查看各资源。`)
     } else if (statusRes.status === 'failed') {
       pageError.value = statusRes.error_message || '任务生成失败'
+    } else if (statusRes.status === 'cancelled') {
+      pollTimeoutMessage.value = '任务已取消，可从历史任务中重试。'
     } else {
       isTaskRunning.value = true
       await pollTaskUntilDone(taskId)
@@ -875,12 +905,46 @@ async function startProducerTask(topic, requirement) {
   }
 }
 
-async function regenerateTask(item) {
+async function retryHistoryTask(item) {
   if (!item || isTaskRunning.value) return
   currentTopic.value = item.topic
   currentRequirement.value = item.requirement
-  await typeAiMessage(`正在根据历史任务「${item.topic}」重新生成资源...`)
-  await startProducerTask(item.topic, item.requirement || '')
+  currentTaskId.value = item.task_id
+  setCurrentProducerTaskId(item.task_id)
+  isTaskRunning.value = true
+  pageError.value = ''
+  try {
+    await typeAiMessage(`正在重试历史任务「${item.topic}」...`)
+    const response = await retryProducerTask(item.task_id)
+    applyTaskStatus(response)
+    if (response.status === 'completed') {
+      await fetchTaskResult(item.task_id)
+    } else {
+      await pollTaskUntilDone(item.task_id)
+    }
+    await loadHistoryTasks()
+  } catch (error) {
+    handleTaskError(error)
+  } finally {
+    isTaskRunning.value = false
+  }
+}
+
+async function cancelHistoryTask(item) {
+  if (!item) return
+  pageError.value = ''
+  try {
+    const response = await cancelProducerTask(item.task_id)
+    if (currentTaskId.value === item.task_id) {
+      clearPollTimer()
+      applyTaskStatus(response)
+      isTaskRunning.value = false
+      pollTimeoutMessage.value = '任务已取消，可随时重试。'
+    }
+    await loadHistoryTasks()
+  } catch (error) {
+    handleTaskError(error)
+  }
 }
 
 function switchTab(key) {
@@ -1517,6 +1581,17 @@ onBeforeUnmount(() => {
   background: #f1f5f9;
 }
 
+.danger-btn {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.28);
+}
+
+.danger-btn:hover {
+  color: #912018;
+  border-color: rgba(180, 35, 24, 0.5);
+  background: #fff1f0;
+}
+
 .btn-group {
   display: flex;
   gap: 10px;
@@ -1791,6 +1866,15 @@ onBeforeUnmount(() => {
   min-height: 240px;
   display: flex;
   flex-direction: column;
+}
+
+.animation-preview {
+  width: 100%;
+  height: 220px;
+  margin-bottom: 12px;
+  border: 0;
+  border-radius: 15px;
+  background: #07111f;
 }
 
 .video-thumb {
