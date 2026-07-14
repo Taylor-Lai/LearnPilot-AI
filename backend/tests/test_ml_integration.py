@@ -1,16 +1,12 @@
 from __future__ import annotations
 
 import os
-import sys
 import unittest
-from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
 os.environ.setdefault("DATABASE_MODE", "sqlite")
 os.environ.setdefault("SQLITE_DATABASE_URL", "sqlite://")
 os.environ.setdefault("USE_ML_SERVICE", "false")

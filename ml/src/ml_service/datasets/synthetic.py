@@ -6,6 +6,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from ..domain.models import InteractionEvent, KnowledgeNode, LearningResource
+from .io import load_dataset
 
 SEED = 20260605
 STAGES = (
@@ -169,12 +170,31 @@ def write_synthetic_dataset(output_dir: Path, seed: int = SEED) -> dict[str, int
         json.dumps([asdict(event) for event in events], ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    return {
+    counts = {
         "knowledge_points": len(graph),
         "resources": len(resources),
         "students": len(students),
         "events": len(events),
     }
+    (output_dir / "dataset_manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "dataset": "LearnPilot deterministic synthetic dataset",
+                "source": "project generator",
+                "license": "MIT",
+                "purpose": "offline development and reproducible baseline",
+                "label_semantics": "simulated learning outcome and preference",
+                "limitations": "not empirical evidence; metrics must be reported separately from real data",
+                "seed": seed,
+                "counts": counts,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    return counts
 
 
 def load_synthetic_dataset(
@@ -183,30 +203,7 @@ def load_synthetic_dataset(
     graph_path = input_dir / "knowledge_graph.json"
     if not graph_path.exists():
         write_synthetic_dataset(input_dir)
-    graph = [KnowledgeNode(**item) for item in json.loads(graph_path.read_text(encoding="utf-8"))]
-    resources = [
-        LearningResource(
-            **{
-                **item,
-                "knowledge_points": tuple(item.get("knowledge_points", [])),
-                "prerequisites_covered": tuple(item.get("prerequisites_covered", [])),
-                "audience": tuple(item.get("audience", [])),
-                "tags": tuple(item.get("tags", [])),
-            }
-        )
-        for item in json.loads((input_dir / "resources.json").read_text(encoding="utf-8"))
-    ]
-    students = json.loads((input_dir / "students.json").read_text(encoding="utf-8"))
-    events = [
-        InteractionEvent(
-            **{
-                **item,
-                "knowledge_points": tuple(item.get("knowledge_points", [])),
-            }
-        )
-        for item in json.loads((input_dir / "events.json").read_text(encoding="utf-8"))
-    ]
-    return graph, resources, students, events
+    return load_dataset(input_dir)
 
 
 def _style_title(style: str) -> str:

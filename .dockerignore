@@ -16,6 +16,8 @@
 **/*.db
 **/*.log
 backend/generated
+data/external
 ml/artifacts
 ml/data/generated
+ml/data/processed
 ml/reports

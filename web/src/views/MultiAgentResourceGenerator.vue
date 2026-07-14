@@ -227,8 +227,8 @@
                 <template v-else-if="activeKey === 'video'">
                   <div class="section-title-row">
                     <div>
-                      <h4>视频资源 · 分页展示</h4>
-                      <p>根据学习需求推荐的视频学习资源。</p>
+                      <h4>视频与动画资源 · 分页展示</h4>
+                      <p>当前提供可播放动画预览与公开视频；正式视频渲染能力作为扩展接口保留。</p>
                     </div>
                     <span class="page-info">第 {{ videoPage }} / {{ totalVideoPages }} 页</span>
                   </div>
@@ -250,6 +250,7 @@
                         <em>{{ video.duration || '未提供' }}</em>
                       </div>
                       <strong>{{ video.title }}</strong>
+                      <span v-if="video.mediaStatus === 'preview'" class="preview-badge">动画预览</span>
                       <p>{{ video.desc }}</p>
                       <div class="video-meta">
                         <span>{{ video.level || '未提供' }}</span>
@@ -699,6 +700,9 @@ function mapVideos(raw) {
     type: video.type || '视频',
     url: video.url || '',
     generated: Boolean(video.generated),
+    mediaStatus: video.media_status || '',
+    renderingMode: video.rendering_mode || '',
+    mp4Available: Boolean(video.mp4_available),
     animationHtml: video.animation_html || '',
   }))
 }
@@ -1910,6 +1914,17 @@ onBeforeUnmount(() => {
 .quiz-head strong {
   color: #111827;
   font-size: 15px;
+}
+
+.preview-badge {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border: 1px solid #a5f3fc;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: #155e75;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .video-meta {

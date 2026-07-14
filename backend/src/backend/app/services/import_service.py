@@ -108,7 +108,7 @@ class ResourceImportService:
                     content=chunk,
                     token_count=len(chunk),
                     keywords=self._keywords(chunk),
-                    embedding=self._embedding_stub(chunk),
+                    embedding=None,
                 )
             )
         return len(chunks)
@@ -153,10 +153,5 @@ class ResourceImportService:
             if len(seen) >= 20:
                 break
         return seen
-
-    def _embedding_stub(self, text: str) -> list[float]:
-        digest = hashlib.sha256(text.encode("utf-8")).digest()
-        return [round(byte / 255, 6) for byte in digest[:16]]
-
 
 resource_import_service = ResourceImportService()

@@ -10,7 +10,19 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 ML_ROOT = Path(os.getenv("LEARNPILOT_ML_ROOT", PACKAGE_DIR.parents[1])).expanduser().resolve()
 DATA_DIR = ML_ROOT / "data"
 GENERATED_DATA_DIR = DATA_DIR / "generated"
+_training_data_value = os.getenv("LEARNPILOT_TRAINING_DATA_DIR", "").strip()
+_training_data_path = Path(_training_data_value).expanduser() if _training_data_value else None
+if _training_data_path is not None and not _training_data_path.is_absolute():
+    _training_data_path = ML_ROOT.parent / _training_data_path
+TRAINING_DATA_DIR = _training_data_path.resolve() if _training_data_path is not None else GENERATED_DATA_DIR
 ARTIFACT_DIR = ML_ROOT / "artifacts"
+DEPLOYED_MODEL_DIR = ML_ROOT / "models" / "ranker"
+_ranker_model_dir_value = os.getenv("LEARNPILOT_RANKER_MODEL_DIR", "").strip()
+RANKER_MODEL_DIR = (
+    Path(_ranker_model_dir_value).expanduser().resolve()
+    if _ranker_model_dir_value
+    else DEPLOYED_MODEL_DIR
+)
 REPORT_DIR = ML_ROOT / "reports"
 DOTENV_CANDIDATES = (ML_ROOT / ".env", ML_ROOT.parent / ".env")
 

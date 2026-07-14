@@ -5,6 +5,7 @@ try:
 except ImportError as exc:  # pragma: no cover
     raise RuntimeError("Install the ML package with `pip install -e ml` before starting the API service.") from exc
 
+from .. import __version__
 from ..application.pipeline import LearningMLPipeline
 from ..config import ML_ROOT
 from ..datasets.demo_cases import DEMO_CASES
@@ -26,7 +27,7 @@ from .schemas import (
     UpdateProfileRequest,
 )
 
-app = FastAPI(title="Personalized Learning ML Service", version="2.0.0")
+app = FastAPI(title="LearnPilot ML Service", version=__version__)
 pipeline = LearningMLPipeline()
 
 
@@ -39,6 +40,9 @@ def health() -> dict:
         "version": app.version,
         "ranker": model["model_type"],
         "feature_version": model["feature_version"],
+        "dataset": model["dataset_name"],
+        "artifact_format": model["artifact_format"],
+        "validation_auc": model["metrics"].get("validation_auc"),
     }
 
 
@@ -54,7 +58,7 @@ def train_status() -> dict:
 
 @app.get("/evaluate")
 def evaluate() -> dict:
-    return run_builtin_evaluation(ML_ROOT, write_report=False)
+    return run_builtin_evaluation(ML_ROOT, write_report=False, offline=True)
 
 
 @app.post("/diagnose")

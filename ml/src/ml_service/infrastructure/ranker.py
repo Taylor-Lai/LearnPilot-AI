@@ -11,11 +11,11 @@ from pathlib import Path
 from typing import Any
 
 from ..application.recommender import ResourceRecommender
-from ..config import ARTIFACT_DIR
+from ..config import RANKER_MODEL_DIR
 from ..domain.models import InteractionEvent, KnowledgeNode, LearningResource, Recommendation, StudentProfile
 
 FEATURE_VERSION = "learning-ranker-v2"
-DEFAULT_ARTIFACT_DIR = ARTIFACT_DIR
+DEFAULT_ARTIFACT_DIR = RANKER_MODEL_DIR
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", "1")
 
 
@@ -30,6 +30,10 @@ class RankerMeta:
     train_samples: int = 0
     validation_samples: int = 0
     dataset_fingerprint: str | None = None
+    dataset_name: str | None = None
+    label_semantics: str | None = None
+    artifact_format: str | None = None
+    artifact_sha256: str | None = None
 
 
 class RankingFeatureExtractor:
@@ -199,8 +203,8 @@ class TrainableRanker:
 
     def _blend_score(self, model_score: float, rule_score: float) -> float:
         if self.meta.model_type == "lightgbm-classifier":
-            # Offline behavior data is synthetic until a team dataset is supplied.
-            # Keep the explainable rule score dominant to avoid over-trusting a domain-shifted model.
+            # Offline labels represent behavior proxies (synthetic outcome or OULAD engagement),
+            # so the explainable rule score remains dominant under course-domain shift.
             return model_score * 0.1 + rule_score * 0.9
         if self.meta.model_type.startswith("sklearn"):
             return model_score * 0.2 + rule_score * 0.8
@@ -211,6 +215,7 @@ class TrainableRanker:
     def _load(self) -> None:
         meta_path = self.artifact_dir / "ranker_meta.json"
         weights_path = self.artifact_dir / "ranker_weights.json"
+        text_model_path = self.artifact_dir / "ranker_model.txt"
         model_path = self.artifact_dir / "ranker_model.joblib"
         if meta_path.exists():
             data = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -225,6 +230,24 @@ class TrainableRanker:
                     fallback_reason=f"artifact feature version mismatch: {self.meta.feature_version}",
                 )
                 return
+        if text_model_path.exists():
+            try:
+                expected_hash = self.meta.artifact_sha256
+                actual_hash = _file_sha256(text_model_path)
+                if expected_hash and actual_hash != expected_hash:
+                    raise ValueError("model SHA-256 does not match ranker metadata")
+                from lightgbm import Booster
+
+                self.model = Booster(model_file=str(text_model_path))
+                return
+            except Exception as exc:
+                self.meta = RankerMeta(
+                    **{
+                        **asdict(self.meta),
+                        "model_type": "rule",
+                        "fallback_reason": f"LightGBM model load failed: {exc}",
+                    }
+                )
         if model_path.exists():
             try:
                 import joblib
@@ -232,7 +255,13 @@ class TrainableRanker:
                 self.model = joblib.load(model_path)
                 return
             except Exception as exc:
-                self.meta = RankerMeta(**{**asdict(self.meta), "fallback_reason": f"joblib model load failed: {exc}"})
+                self.meta = RankerMeta(
+                    **{
+                        **asdict(self.meta),
+                        "model_type": "rule",
+                        "fallback_reason": f"joblib model load failed: {exc}",
+                    }
+                )
         if weights_path.exists():
             self.weights = json.loads(weights_path.read_text(encoding="utf-8"))
 
@@ -243,6 +272,7 @@ def train_ranker_artifacts(
     groups: list[str] | None = None,
     validation_fraction: float = 0.2,
     random_seed: int = 42,
+    dataset_meta: dict[str, str] | None = None,
 ) -> dict:
     if len(rows) < 4:
         raise ValueError("at least four labeled samples are required to train the ranker")
@@ -261,6 +291,8 @@ def train_ranker_artifacts(
     model_type = "sklearn-logistic"
     metrics: dict[str, float]
     fallback_reason = None
+    artifact_format = None
+    artifact_sha256 = None
 
     try:
         try:
@@ -282,9 +314,20 @@ def train_ranker_artifacts(
             model.predict_proba(x_validation)[:, 1] if hasattr(model, "predict_proba") else model.predict(x_validation)
         )
         metrics = _training_metrics(y_train, train_predictions, y_validation, validation_predictions)
-        import joblib
+        if model_type == "lightgbm-classifier" and hasattr(model, "booster_"):
+            model_path = artifact_dir / "ranker_model.txt"
+            model.booster_.save_model(str(model_path))
+            (artifact_dir / "ranker_model.joblib").unlink(missing_ok=True)
+            artifact_format = "lightgbm-text"
+        else:
+            import joblib
 
-        joblib.dump(model, artifact_dir / "ranker_model.joblib")
+            model_path = artifact_dir / "ranker_model.joblib"
+            joblib.dump(model, model_path)
+            (artifact_dir / "ranker_model.txt").unlink(missing_ok=True)
+            artifact_format = "joblib"
+        (artifact_dir / "ranker_weights.json").unlink(missing_ok=True)
+        artifact_sha256 = _file_sha256(model_path)
     except Exception as exc:
         model_type = "weighted-fallback"
         fallback_reason = f"training failed: {exc}"
@@ -295,6 +338,10 @@ def train_ranker_artifacts(
         ]
         metrics = _training_metrics(y_train, train_predictions, y_validation, validation_predictions)
         (artifact_dir / "ranker_weights.json").write_text(json.dumps(weights, indent=2), encoding="utf-8")
+        (artifact_dir / "ranker_model.txt").unlink(missing_ok=True)
+        (artifact_dir / "ranker_model.joblib").unlink(missing_ok=True)
+        artifact_format = "json-weights"
+        artifact_sha256 = _file_sha256(artifact_dir / "ranker_weights.json")
 
     meta = RankerMeta(
         model_type=model_type,
@@ -306,6 +353,10 @@ def train_ranker_artifacts(
         train_samples=len(train_rows),
         validation_samples=len(validation_rows),
         dataset_fingerprint=_dataset_fingerprint(rows, feature_names),
+        dataset_name=(dataset_meta or {}).get("dataset"),
+        label_semantics=(dataset_meta or {}).get("label_semantics"),
+        artifact_format=artifact_format,
+        artifact_sha256=artifact_sha256,
     )
     (artifact_dir / "ranker_meta.json").write_text(
         json.dumps(asdict(meta), ensure_ascii=False, indent=2), encoding="utf-8"
@@ -365,6 +416,14 @@ def _weighted_prediction(weights, features, feature_names) -> float:
 def _dataset_fingerprint(rows: list[tuple[dict[str, float], int]], feature_names: list[str]) -> str:
     payload = [([round(features[name], 8) for name in feature_names], label) for features, label in rows]
     return hashlib.sha256(json.dumps(payload, separators=(",", ":")).encode("utf-8")).hexdigest()[:16]
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _binary_metrics(y: list[int], scores: list[float]) -> dict[str, float]:

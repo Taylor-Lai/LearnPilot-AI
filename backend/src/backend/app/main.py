@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from backend import __version__
 from backend.app.api.router import api_router
 from backend.app.core.config import get_settings
 from backend.app.core.database import (
@@ -28,7 +29,7 @@ logger = logging.getLogger("learnpilot.backend")
 app = FastAPI(
     title=settings.app_name,
     description="基于大模型的个性化资源生成与学习多智能体系统后端",
-    version="0.1.0",
+    version=__version__,
 )
 
 app.add_middleware(

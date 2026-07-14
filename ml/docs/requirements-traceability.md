@@ -16,7 +16,8 @@
 | 智能辅导 | 基于画像、对话历史和课程证据的苏格拉底式多轮辅导 | `POST /tutor/ask` |
 | 学习效果评估 | Recall/NDCG/MAP/MRR、覆盖度、多样性、先修合理性、生成质量、证据率、多形态覆盖率、安全率、审核通过率、可解释率 | `GET /evaluate`、`learnpilot-ml-evaluate` |
 | 动态反馈闭环 | 新行为更新掌握度和画像，重新推荐并重规划路径，输出前后差异 | `POST /feedback` |
-| 可复现训练 | 固定随机种子、按学生分组留出验证、防止目标事件泄漏、模型元数据和数据指纹 | `learnpilot-ml-generate`、`learnpilot-ml-train` |
+| 可复现训练 | 固定随机种子、按学生分组留出验证、防止目标事件泄漏、模型元数据、标签语义和数据指纹 | `learnpilot-ml-generate`、`learnpilot-ml-train` |
+| 真实行为数据 | OULAD ZIP/目录校验与预处理；学生 ID 散列，受保护人口统计字段排除，点击量明确作为参与度代理；原始和处理数据不进入 Git | `learnpilot-ml-prepare-oulad`、`OuladDatasetTest`、`data/README.md` |
 
 ## ML 交付验收顺序
 
@@ -31,3 +32,4 @@ learnpilot-ml-demo
 ```
 
 自动化测试默认使用模板模式，不依赖外网。正式参赛演示将优先接入科大讯飞相关模型服务；其他模型适配仅作为兼容能力，不作为默认验收依据。
+内置评测命令和 `GET /evaluate` 强制使用离线模板，即使本地存在 API Key 也不会产生在线调用。

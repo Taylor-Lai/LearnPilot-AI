@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import JSON, Boolean, DateTime, create_engine, func, inspect, select
@@ -12,13 +10,9 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.engine import Engine
 from sqlalchemy.sql.schema import Column, Table
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from backend.app.core.config import get_settings  # noqa: E402
-from backend.app.core.database import Base  # noqa: E402
-from backend.app.models import entities  # noqa: F401,E402
+from backend.app.core.config import get_settings
+from backend.app.core.database import Base
+from backend.app.models import entities  # noqa: F401
 
 TABLES = [
     "user",

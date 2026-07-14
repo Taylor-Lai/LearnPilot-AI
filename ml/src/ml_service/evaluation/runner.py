@@ -148,10 +148,14 @@ def explainability_rate(result: dict) -> float:
     return round(explained / len(recommendations), 4)
 
 
-def run_builtin_evaluation(root: Path, write_report: bool = True) -> dict:
+def run_builtin_evaluation(root: Path, write_report: bool = True, *, offline: bool = True) -> dict:
     feedback_path = root / "data" / "benchmarks" / "evaluation-cases.json"
     feedback = json.loads(feedback_path.read_text(encoding="utf-8"))
     pipeline = LearningMLPipeline()
+    if offline:
+        from ..infrastructure.content_generator import TemplateLLMClient
+
+        pipeline.generation_agent.generator.llm_client = TemplateLLMClient()
     rows = []
     for sample in feedback:
         result = pipeline.recommend(
@@ -183,6 +187,7 @@ def run_builtin_evaluation(root: Path, write_report: bool = True) -> dict:
             }
         )
     summary = _summarize(rows)
+    summary["evaluation_mode"] = "offline-template" if offline else "configured-provider"
     summary["model_meta"] = pipeline.recommendation_agent.status()
     summary["ablations"] = _run_ranking_ablations(feedback, summary)
     summary["mastery_lift_demo"] = _mastery_lift(pipeline, feedback[0])

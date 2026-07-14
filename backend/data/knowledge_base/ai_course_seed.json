@@ -1,5 +1,30 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
+  "content_provenance": {
+    "author": "LearnPilot AI 课程组",
+    "license": "MIT",
+    "statement": "课程结构、知识点说明、题目和实验任务由项目团队自行编写；外部资源仅用于主题覆盖核对。",
+    "references": [
+      {
+        "name": "Microsoft AI for Beginners",
+        "url": "https://github.com/microsoft/AI-For-Beginners",
+        "license": "MIT",
+        "usage": "课程主题与实验组织参考"
+      },
+      {
+        "name": "Dive into Deep Learning",
+        "url": "https://github.com/d2l-ai/d2l-en",
+        "license": "CC BY-SA 4.0（正文）/ modified MIT（示例代码）",
+        "usage": "深度学习主题范围参考，不复制正文或代码"
+      },
+      {
+        "name": "MIT OpenCourseWare 6.034",
+        "url": "https://ocw.mit.edu/courses/6-034-artificial-intelligence-fall-2010/",
+        "license": "CC BY-NC-SA 4.0",
+        "usage": "课程范围参考，不并入项目内容"
+      }
+    ]
+  },
   "course": {
     "code": "AI-FOUNDATIONS",
     "name": "人工智能",

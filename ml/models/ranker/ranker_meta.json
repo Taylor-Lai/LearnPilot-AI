@@ -1,0 +1,21 @@
+{
+  "model_type": "lightgbm-classifier",
+  "feature_version": "learning-ranker-v2",
+  "trained_at": "2026-07-14T13:44:45.226938+00:00",
+  "samples": 76200,
+  "metrics": {
+    "train_accuracy": 0.8233,
+    "train_auc": 0.8369,
+    "validation_accuracy": 0.803,
+    "validation_auc": 0.8248,
+    "generalization_gap": 0.0121
+  },
+  "fallback_reason": null,
+  "train_samples": 60933,
+  "validation_samples": 15267,
+  "dataset_fingerprint": "bc29874708180f3d",
+  "dataset_name": "Open University Learning Analytics Dataset (OULAD)",
+  "label_semantics": "log-scaled VLE clicks; not knowledge mastery",
+  "artifact_format": "lightgbm-text",
+  "artifact_sha256": "dea3a94f4023f4ba401b578d7b36e680001363462565d3b59aafce16e9203743"
+}

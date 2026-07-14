@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "learnpilot-ml"
-version = "2.0.0"
+version = "1.0.0"
 description = "Personalized learning diagnosis, ranking, RAG generation, and tutoring service"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -25,6 +25,7 @@ dependencies = [
 [project.scripts]
 learnpilot-ml-api = "ml_service.cli:serve"
 learnpilot-ml-generate = "ml_service.cli:generate"
+learnpilot-ml-prepare-oulad = "ml_service.cli:prepare_oulad"
 learnpilot-ml-train = "ml_service.cli:train"
 learnpilot-ml-evaluate = "ml_service.cli:evaluate"
 learnpilot-ml-demo = "ml_service.cli:demo"

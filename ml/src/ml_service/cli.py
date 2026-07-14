@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import json
 import os
+import sys
+from pathlib import Path
 
 from .application.pipeline import LearningMLPipeline
 from .config import GENERATED_DATA_DIR, ML_ROOT
 from .datasets.demo_cases import DEMO_CASES
+from .datasets.oulad import prepare_oulad_dataset
 from .datasets.synthetic import SEED, write_synthetic_dataset
 from .evaluation import run_builtin_evaluation
 from .infrastructure.content_generator import OpenAICompatibleClient, load_dotenv_if_present
-from .training import train_from_generated_data
+from .training import train_from_data
 
 
 def _print(payload: dict) -> None:
@@ -23,12 +26,30 @@ def generate() -> None:
 
 
 def train() -> None:
-    _print(train_from_generated_data())
+    _print(train_from_data())
+
+
+def prepare_oulad() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Convert OULAD CSV files into LearnPilot training data.")
+    parser.add_argument("source", type=Path, help="OULAD ZIP file or extracted directory")
+    parser.add_argument("output", type=Path, help="output directory for normalized JSON files")
+    parser.add_argument("--max-events", type=int, default=200_000)
+    parser.add_argument("--max-events-per-student", type=int, default=300)
+    args = parser.parse_args(sys.argv[1:])
+    _print(
+        prepare_oulad_dataset(
+            args.source,
+            args.output,
+            max_events=args.max_events,
+            max_events_per_student=args.max_events_per_student,
+        )
+    )
 
 
 def evaluate() -> None:
-    os.environ.setdefault("LEARNPILOT_LLM_MODE", "template")
-    _print(run_builtin_evaluation(ML_ROOT, write_report=True))
+    _print(run_builtin_evaluation(ML_ROOT, write_report=True, offline=True))
 
 
 def demo() -> None:

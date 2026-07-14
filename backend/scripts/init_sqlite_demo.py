@@ -1,12 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
-from pathlib import Path
-
-ROOT_DIR = Path(__file__).resolve().parents[1]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
 
 os.environ.setdefault("DATABASE_MODE", "sqlite")
 os.environ.setdefault("SQLITE_DATABASE_URL", "sqlite:///./learnpilot.db")
@@ -27,6 +21,7 @@ from backend.app.core.database import (
 )
 from backend.app.models import Course, CourseResource, KnowledgePoint, ResourceCenter, User
 from backend.app.services.course_catalog import seed_ai_course
+from backend.app.services.course_materials import course_materials_available, ingest_ai_for_beginners
 
 COURSES = [
     {
@@ -291,6 +286,11 @@ def init_demo_data() -> None:
             upsert_resource_center_item(session, resource)
 
         catalog_result = seed_ai_course(session)
+        materials_result = (
+            ingest_ai_for_beginners(session, int(catalog_result["course_id"]))
+            if course_materials_available()
+            else None
+        )
 
         session.commit()
 
@@ -299,7 +299,8 @@ def init_demo_data() -> None:
         print(
             "SQLite demo database initialized. "
             f"course_resource_total={total_resources}, resource_center_total={center_total}, "
-            f"ai_knowledge_points={catalog_result['knowledge_points']}"
+            f"ai_knowledge_points={catalog_result['knowledge_points']}, "
+            f"ai_material_documents={materials_result['documents'] if materials_result else 0}"
         )
 
 

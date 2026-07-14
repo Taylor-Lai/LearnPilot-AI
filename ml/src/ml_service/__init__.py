@@ -1,5 +1,7 @@
 """Machine learning services for personalized learning."""
 
+__version__ = "1.0.0"
+
 from .application.agents import AgentTrace
 from .application.pipeline import LearningMLPipeline
 from .application.tutor import TutorAgent
@@ -13,6 +15,7 @@ from .domain.models import (
 )
 
 __all__ = [
+    "__version__",
     "InteractionEvent",
     "KnowledgeNode",
     "LearningResource",

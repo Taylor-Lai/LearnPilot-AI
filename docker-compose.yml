@@ -29,7 +29,7 @@ services:
       - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${MYSQL_PUBLISHED_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./backend/mysql:/docker-entrypoint-initdb.d:ro
+      - ./backend/migrations/mysql:/docker-entrypoint-initdb.d:ro
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
@@ -63,6 +63,7 @@ services:
     environment:
       <<: *llm-environment
       LEARNPILOT_ML_ROOT: /app/ml
+      LEARNPILOT_RANKER_MODEL_DIR: /app/ml/models/ranker
     ports:
       - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${ML_PUBLISHED_PORT:-8000}:8000"
     expose:
@@ -96,7 +97,10 @@ services:
       ML_SERVICE_URL: http://ml-service:8000
       USE_ML_SERVICE: "true"
       ML_SERVICE_TIMEOUT_SECONDS: ${ML_SERVICE_TIMEOUT_SECONDS:-90}
+      LEARNPILOT_COURSE_SOURCE_DIR: /app/data/external/course-materials/ai-for-beginners
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+    volumes:
+      - ./data/external/course-materials/ai-for-beginners:/app/data/external/course-materials/ai-for-beginners:ro
     ports:
       - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PUBLISHED_PORT:-8001}:8001"
     expose:

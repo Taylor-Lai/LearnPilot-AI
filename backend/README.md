@@ -6,7 +6,7 @@ LearnPilot 的主业务服务，负责用户与权限、课程资源、题库、
 
 ```text
 backend/
-├─ backend/app/
+├─ src/backend/app/
 │  ├─ api/                 HTTP 路由与统一路由装配
 │  ├─ services/            学习闭环和资源导入用例
 │  ├─ agents/              后端智能体编排单元
@@ -14,8 +14,8 @@ backend/
 │  ├─ models/              SQLAlchemy 实体
 │  ├─ schemas/             HTTP DTO
 │  └─ core/                配置、数据库和安全
-├─ data/knowledge_base/    课程知识库种子
-├─ mysql/                  MySQL 初始化脚本
+├─ data/knowledge_base/    可审查的课程目录种子
+├─ migrations/mysql/       MySQL 初始化迁移
 ├─ scripts/                数据库与知识库运维命令
 ├─ tests/                  业务、集成和接口契约测试
 └─ pyproject.toml          包元数据与依赖声明
@@ -50,7 +50,7 @@ $env:DATABASE_MODE="sqlite"
 python backend/scripts/init_sqlite_demo.py
 ```
 
-生产或 Docker Compose 使用 MySQL；建表和种子数据位于 `backend/mysql/`。PostgreSQL 初始化入口为 `backend/scripts/init_postgres.py`。`mysql_to_postgres.py` 用于受控迁移，执行前必须显式设置 `DATABASE_URL`，仓库不保存数据库口令或数据库导出。
+生产或 Docker Compose 使用 MySQL；建表和种子数据位于 `backend/migrations/mysql/`。PostgreSQL 初始化入口为 `backend/scripts/init_postgres.py`。`mysql_to_postgres.py` 用于受控迁移，执行前必须显式设置 `DATABASE_URL`，仓库不保存数据库口令或数据库导出。
 
 公开注册只创建学生账号。管理员账号使用 `scripts/reset_admin_password.py` 创建或重置，密码通过 `LEARNPILOT_ADMIN_PASSWORD` 或 `--password` 提供；生产环境不要把密码写入命令历史。
 

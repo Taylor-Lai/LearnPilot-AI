@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +9,8 @@ from sqlalchemy.orm import Session
 
 from backend.app.models import Course, CourseResource, KnowledgePoint, Question, ResourceCenter
 
-CATALOG_PATH = Path(__file__).resolve().parents[3] / "data" / "knowledge_base" / "ai_course_seed.json"
+BACKEND_ROOT = Path(os.getenv("LEARNPILOT_BACKEND_ROOT", Path(__file__).resolve().parents[4])).resolve()
+CATALOG_PATH = BACKEND_ROOT / "data" / "knowledge_base" / "ai_course_seed.json"
 
 
 def load_ai_course_catalog() -> dict[str, Any]:
@@ -18,6 +20,9 @@ def load_ai_course_catalog() -> dict[str, Any]:
 
 
 def validate_ai_course_catalog(catalog: dict[str, Any]) -> None:
+    provenance = catalog.get("content_provenance") or {}
+    if provenance.get("author") != "LearnPilot AI 课程组" or not provenance.get("references"):
+        raise ValueError("AI course catalog must declare authorship and reference provenance")
     chapters = catalog.get("chapters") or []
     if len(chapters) < 8:
         raise ValueError("AI course catalog must contain at least 8 chapters")
@@ -81,6 +86,11 @@ def seed_ai_course(session: Session) -> dict[str, int]:
 
         chapter_point_names = [item["name"] for item in chapter["knowledge_points"]]
         chapter_content = _chapter_markdown(course_data, chapter)
+        source_metadata = {
+            "content_author": catalog["content_provenance"]["author"],
+            "content_license": catalog["content_provenance"]["license"],
+            "references": catalog["content_provenance"]["references"],
+        }
         resource_count += _upsert_course_resource(
             session,
             course.id,
@@ -88,7 +98,12 @@ def seed_ai_course(session: Session) -> dict[str, int]:
             f"第{chapter['order']}章 {chapter['title']}课程讲义",
             "lecture",
             chapter_content,
-            {"chapter_id": chapter["id"], "hours": chapter["hours"], "knowledge_points": chapter_point_names},
+            {
+                "chapter_id": chapter["id"],
+                "hours": chapter["hours"],
+                "knowledge_points": chapter_point_names,
+                **source_metadata,
+            },
         )
         resource_count += _upsert_course_resource(
             session,
@@ -97,7 +112,7 @@ def seed_ai_course(session: Session) -> dict[str, int]:
             f"第{chapter['order']}章 {chapter['title']}实验任务书",
             "lab",
             _lab_markdown(chapter),
-            {"chapter_id": chapter["id"], "knowledge_points": chapter_point_names},
+            {"chapter_id": chapter["id"], "knowledge_points": chapter_point_names, **source_metadata},
         )
         _upsert_resource_center(session, chapter, chapter_content, chapter_point_names[-1])
 

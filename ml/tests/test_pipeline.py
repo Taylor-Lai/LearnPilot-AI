@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import tempfile
 import unittest
 import xml.etree.ElementTree as ElementTree
@@ -16,7 +17,7 @@ from ml_service.datasets.catalog import DEFAULT_RESOURCES
 from ml_service.domain.diagnostics import AssessmentItem, AssessmentResponse, DiagnosticEngine
 from ml_service.infrastructure.content_generator import ContentGenerator, load_dotenv_if_present
 from ml_service.infrastructure.rag import ResourceRetriever
-from ml_service.infrastructure.ranker import RankingFeatureExtractor, train_ranker_artifacts
+from ml_service.infrastructure.ranker import RankingFeatureExtractor, TrainableRanker, train_ranker_artifacts
 from ml_service.infrastructure.safety import ContentSafetyGuard
 
 try:
@@ -309,6 +310,25 @@ class RankerTrainingTest(unittest.TestCase):
         self.assertIn("validation_auc", meta["metrics"])
         self.assertTrue(meta["dataset_fingerprint"])
 
+    def test_packaged_oulad_model_loads_and_rejects_tampering(self) -> None:
+        source = Path(__file__).resolve().parents[1] / "models" / "ranker"
+        ranker = TrainableRanker(source)
+
+        self.assertEqual(ranker.status()["dataset_name"], "Open University Learning Analytics Dataset (OULAD)")
+        self.assertEqual(ranker.status()["artifact_format"], "lightgbm-text")
+        self.assertIsNotNone(ranker.model)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir)
+            shutil.copyfile(source / "ranker_meta.json", target / "ranker_meta.json")
+            shutil.copyfile(source / "ranker_model.txt", target / "ranker_model.txt")
+            with (target / "ranker_model.txt").open("a", encoding="utf-8") as model_file:
+                model_file.write("\n# tampered\n")
+            tampered = TrainableRanker(target)
+
+        self.assertEqual(tampered.status()["model_type"], "rule")
+        self.assertIn("SHA-256", tampered.status()["fallback_reason"])
+
 
 class RagAndGenerationTest(unittest.TestCase):
     def test_model_json_decoder_accepts_literal_newlines(self) -> None:
@@ -570,6 +590,7 @@ class ApiTest(unittest.TestCase):
         evaluation = client.get("/evaluate")
         self.assertEqual(evaluation.status_code, 200)
         self.assertIn("mean_map@5", evaluation.json())
+        self.assertEqual(evaluation.json()["evaluation_mode"], "offline-template")
 
         profile = client.post(
             "/student/update-profile",

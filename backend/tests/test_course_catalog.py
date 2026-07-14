@@ -1,16 +1,12 @@
 from __future__ import annotations
 
 import os
-import sys
 import unittest
-from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
 os.environ.setdefault("DATABASE_MODE", "sqlite")
 os.environ.setdefault("SQLITE_DATABASE_URL", "sqlite://")
 
@@ -41,6 +37,8 @@ class ArtificialIntelligenceCourseCatalogTest(unittest.TestCase):
         self.assertEqual(len(points), 32)
         self.assertGreaterEqual(len(questions), 16)
         self.assertEqual(catalog["course"]["total_hours"], 64)
+        self.assertEqual(catalog["content_provenance"]["license"], "MIT")
+        self.assertGreaterEqual(len(catalog["content_provenance"]["references"]), 3)
         self.assertIn("反向传播", ai_prerequisites()["CNN"])
         self.assertIn("Transformer", ai_prerequisites()["大模型与RAG"])
 
@@ -64,6 +62,9 @@ class ArtificialIntelligenceCourseCatalogTest(unittest.TestCase):
             )
             self.assertEqual(session.query(Question).filter(Question.course_id == course.id).count(), 16)
             self.assertEqual(session.query(ResourceCenter).count(), 8)
+            lecture = session.query(CourseResource).filter(CourseResource.resource_type == "lecture").first()
+            self.assertEqual(lecture.resource_metadata["content_author"], "LearnPilot AI 课程组")
+            self.assertEqual(lecture.resource_metadata["content_license"], "MIT")
 
     def test_seed_reuses_pending_course_in_existing_transaction(self) -> None:
         with self.Session() as session:

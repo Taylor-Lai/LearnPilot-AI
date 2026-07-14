@@ -1,0 +1,74 @@
+schema_version: "1.0"
+
+sources:
+  - id: oulad
+    name: Open University Learning Analytics Dataset
+    kind: dataset
+    upstream: https://analyse.kmi.open.ac.uk/open_dataset
+    canonical_documentation: https://research.stem.open.ac.uk/ouanalyse/dataset/
+    license: CC-BY-4.0
+    revision: official-anonymised-data-release
+    local_path: data/external/datasets/oulad/anonymisedData.zip
+    sha256: 90dda45037939953f979072fa70a809ebe07e90ec783c408762af7698a3825ec
+    distribution: ignored
+    usage: resource-ranking engagement proxy
+    restrictions:
+      - Do not interpret VLE clicks as knowledge mastery.
+      - Do not emit protected demographic attributes into training data.
+      - Preserve attribution in derived dataset manifests.
+
+  - id: microsoft-ai-for-beginners
+    name: Microsoft AI for Beginners
+    kind: course-material
+    upstream: https://github.com/microsoft/AI-For-Beginners.git
+    license: MIT
+    revision: 0b3a28c7c3d081a7de625e496f6be6461188fe93
+    local_path: data/external/course-materials/ai-for-beginners
+    distribution: ignored
+    sync_strategy: github-files
+    include_extensions:
+      - .md
+      - .ipynb
+      - .py
+      - .json
+      - .csv
+      - .txt
+      - .yml
+      - .yaml
+      - .js
+      - .jsx
+      - .ts
+      - .tsx
+      - .html
+      - .css
+    sparse_paths:
+      - LICENSE
+      - README.md
+      - lessons/
+      - translations/zh-CN/
+      - etc/quiz-app/
+      - data/
+      - examples/
+    ingestion:
+      mode: attributed-adaptation
+      output: backend/data/knowledge_base
+      requirements:
+        - Preserve the upstream license and source revision in derived metadata.
+        - Map selected material into the LearnPilot course schema before publication.
+        - Run content, citation, and course-catalog tests before release.
+
+  - id: d2l-zh
+    name: Dive into Deep Learning (Chinese)
+    kind: reference-only
+    upstream: https://github.com/d2l-ai/d2l-zh
+    license: CC-BY-SA-4.0 for book text; modified MIT for sample code
+    distribution: link-only
+    usage: deep-learning scope and optional separately attributed code reference
+
+  - id: mit-ocw-6-034
+    name: MIT OpenCourseWare 6.034 Artificial Intelligence
+    kind: reference-only
+    upstream: https://ocw.mit.edu/courses/6-034-artificial-intelligence-fall-2010/
+    license: CC-BY-NC-SA-4.0
+    distribution: link-only
+    usage: curriculum scope and external enrichment links only

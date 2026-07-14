@@ -45,6 +45,8 @@ LearnPilot-AI/
 ├─ backend/                 主后端 Python 包、数据库脚本和测试
 ├─ ml/                      ML 服务、训练评估和测试
 ├─ web/                     Vue 3 学生端与管理端
+├─ data/                    外部来源登记与本地只读原始输入
+├─ tools/                   仓库级数据来源管理工具
 ├─ docs/                    仓库级架构文档
 ├─ Dockerfile               backend / ml / web 多阶段镜像
 ├─ docker-compose.yml       完整本地服务栈
@@ -77,7 +79,34 @@ learnpilot-ml-evaluate
 learnpilot-ml-demo
 ```
 
-`ml/data/generated/`、`ml/artifacts/` 和 `ml/reports/` 都是可再生输出，不进入 Git。
+`data/external/`、`ml/data/generated/`、`ml/data/processed/`、`ml/artifacts/` 和 `ml/reports/` 都是本地外部输入或可再生输出，不进入 Git。经验证的部署模型以安全的 LightGBM 文本格式保存在 `ml/models/ranker/`，并通过元数据中的 SHA-256 校验。
+
+没有赛题方行为数据时，默认合成数据只负责保证流程可复现；正式离线实验可使用 OULAD 真实高等教育行为数据：
+
+```powershell
+learnpilot-ml-prepare-oulad data/external/datasets/oulad/anonymisedData.zip ml/data/processed/oulad
+$env:LEARNPILOT_TRAINING_DATA_DIR="ml/data/processed/oulad"
+learnpilot-ml-train
+```
+
+OULAD 不提供人工智能课程内容，项目只用它验证行为建模和推荐排序。其点击量被明确建模为“参与度代理”而非知识掌握度；完整数据边界见 [ml/data/README.md](ml/data/README.md)。
+
+### 外部课程材料
+
+所有外部输入都登记在 [data/sources.yaml](data/sources.yaml)，原始文件统一放在 `data/external/` 并由 Git 和 Docker 忽略。验证本地来源：
+
+```powershell
+python tools/manage_sources.py verify
+```
+
+同步固定版本的 Microsoft AI for Beginners：
+
+```powershell
+python tools/manage_sources.py sync microsoft-ai-for-beginners --proxy http://127.0.0.1:7897
+python backend/scripts/seed_ai_course.py
+```
+
+`--proxy` 为可选参数。同步器只处理清单中声明为 `ignored` 的课程来源，按固定提交逐文件下载文本、Notebook、代码和测验，并使用 Git blob SHA 校验；课程播种脚本随后将 37 份中文课程/实验文档映射为带来源元数据的资源和 RAG 分块。D2L 与 MIT OCW 在清单中标记为 `link-only`，不会混入 MIT 课程库。
 
 ### 启动服务
 
@@ -120,6 +149,7 @@ learnpilot-ml-qwen-check
 ```
 
 未设置密钥时，`LEARNPILOT_LLM_MODE=template` 提供确定性的离线生成，便于测试。Qwen 仅作为可选兼容适配。
+`learnpilot-ml-evaluate` 和 `GET /evaluate` 始终使用离线模板，避免评测因本地 API Key 而产生费用、网络波动或不可复现结果；真实模型质量应通过单独的在线验收用例记录。
 
 ## 课程知识库
 
@@ -158,7 +188,7 @@ docker compose build
 docker compose up -d
 ```
 
-完整服务栈包括 `web`、`backend`、`ml-service`、`worker`、`mysql` 和 `redis`。服务均包含健康检查或健康依赖，MySQL 与 Redis 数据分别保存在命名卷中。启动后前端地址为 `http://127.0.0.1:8080`。
+完整服务栈包括 `web`、`backend`、`ml-service`、`worker`、`mysql` 和 `redis`。服务均包含健康检查或健康依赖，MySQL 与 Redis 数据分别保存在命名卷中。ML 镜像直接加载通过哈希校验的 OULAD 排序模型，不在镜像构建阶段用合成数据覆盖正式模型。启动后前端地址为 `http://127.0.0.1:8080`。
 
 宿主机端口可通过 `.env` 中的 `WEB_PUBLISHED_PORT`、`BACKEND_PUBLISHED_PORT`、`ML_PUBLISHED_PORT`、`MYSQL_PUBLISHED_PORT` 和 `REDIS_PUBLISHED_PORT` 调整。端口默认仅监听 `127.0.0.1`；需要局域网演示时可将 `DOCKER_BIND_ADDRESS` 显式设为 `0.0.0.0`。公网部署时还必须将 `DOCKER_CORS_ORIGINS` 设置为实际可信来源，且不得使用示例密码。
 
@@ -172,7 +202,7 @@ $env:LEARNPILOT_ADMIN_PASSWORD="使用密码管理器生成的强密码"
 python backend/scripts/reset_admin_password.py
 ```
 
-`.env`、数据库导出、运行数据库、模型产物与前端构建目录均被 Git 忽略。生产环境必须设置独立的 `JWT_SECRET_KEY`，不得使用示例值。
+`.env`、数据库导出、运行数据库、重新训练产物与前端构建目录均被 Git 忽略。仓库只纳入经过验证、带来源和哈希元数据的部署模型。生产环境必须设置独立的 `JWT_SECRET_KEY`，不得使用示例值。
 
 ## 文档
 
@@ -184,3 +214,7 @@ python backend/scripts/reset_admin_password.py
 - [ML 服务说明](ml/README.md)
 - [ML 设计](ml/docs/design.md)
 - [ML 技术追踪矩阵](ml/docs/requirements-traceability.md)
+
+## 许可证与来源
+
+LearnPilot AI 自主开发代码和原创课程内容采用 [MIT License](LICENSE)。OULAD 数据、课程设计参考和外部许可证边界见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)；项目 MIT License 不会覆盖或重新许可第三方材料。

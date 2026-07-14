@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import os
-import sys
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
 os.environ.setdefault("DATABASE_MODE", "sqlite")
 os.environ.setdefault("SQLITE_DATABASE_URL", "sqlite://")
 os.environ.setdefault("USE_ML_SERVICE", "false")
@@ -23,7 +20,6 @@ from backend.app.core.database import Base, get_db
 from backend.app.core.security import hash_password
 from backend.app.main import app
 from backend.app.models import Course, KnowledgePoint, LearningPath, Question, User
-from fastapi.testclient import TestClient
 
 
 class ProductionApiTest(unittest.TestCase):
@@ -167,6 +163,8 @@ class ProductionApiTest(unittest.TestCase):
         self.assertTrue(result.json()["result"]["generation_fallback"])
         animation = result.json()["result"]["videos"][0]
         self.assertTrue(animation["generated"])
+        self.assertEqual(animation["media_status"], "preview")
+        self.assertFalse(animation["mp4_available"])
         self.assertIn("卷积神经网络", animation["animation_html"])
         self.assertIn("<style>", animation["animation_html"])
         self.assertNotIn("<script", animation["animation_html"])

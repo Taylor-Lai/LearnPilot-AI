@@ -1,5 +1,6 @@
 target-version = "py311"
 line-length = 120
+src = ["backend/src", "ml/src"]
 exclude = [
   ".git",
   ".venv",
@@ -13,8 +14,8 @@ select = ["E", "F", "I", "UP", "B"]
 ignore = ["E501"]
 
 [lint.per-file-ignores]
-"backend/backend/app/api/*.py" = ["B008"]
-"backend/backend/app/core/security.py" = ["B008"]
+"backend/src/backend/app/api/*.py" = ["B008"]
+"backend/src/backend/app/core/security.py" = ["B008"]
 "backend/scripts/*.py" = ["E402"]
 "backend/tests/*.py" = ["E402"]
 "ml/tests/*.py" = ["E402"]

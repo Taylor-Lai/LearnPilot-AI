@@ -11,7 +11,7 @@ ml/
 │  ├─ application/         学习闭环、Agent 编排和多形态资源构建
 │  ├─ domain/              领域模型和诊断逻辑
 │  ├─ infrastructure/      LightGBM、RAG、内容安全和大模型提供方适配器
-│  ├─ datasets/            内置资源、演示和合成数据
+│  ├─ datasets/            统一数据契约、OULAD 预处理、内置资源和合成数据
 │  ├─ training/            防泄漏训练工作流
 │  └─ evaluation/          离线评估与报告
 ├─ data/benchmarks/        小型、可审查的评估基准
@@ -20,13 +20,15 @@ ml/
 └─ pyproject.toml          包元数据、依赖和命令入口
 ```
 
-生成数据、模型和报告不会提交：
+生成数据、重新训练产物和报告不会提交：
 
 ```text
 ml/data/generated/
 ml/artifacts/
 ml/reports/
 ```
+
+正式部署模型位于 `models/ranker/`，采用可审查的 LightGBM 文本格式；`ranker_meta.json` 记录 OULAD 数据语义、分组验证指标、特征版本和模型 SHA-256。服务启动时会校验哈希，校验失败则拒绝加载并安全降级到规则排序。
 
 ## 工作流
 
@@ -39,6 +41,21 @@ learnpilot-ml-demo
 ```
 
 训练流程固定随机种子，按学生划分验证集，并在构造特征时排除目标交互，避免行为标签泄漏。
+内置评测命令和 `GET /evaluate` 始终强制使用离线模板，即使 `.env` 已配置真实 API Key，也不会从评测接口发起付费模型请求。
+
+需要真实高等教育行为数据时，从 OULAD 官方页面下载 ZIP 后执行：
+
+```powershell
+learnpilot-ml-prepare-oulad data/external/datasets/oulad/anonymisedData.zip ml/data/processed/oulad
+$env:LEARNPILOT_TRAINING_DATA_DIR="ml/data/processed/oulad"
+learnpilot-ml-train
+```
+
+训练命令写入 `ml/artifacts/`，不会自动替换正式部署模型。验证候选模型时可显式设置 `LEARNPILOT_RANKER_MODEL_DIR=ml/artifacts`；通过指标、来源和哈希复核后，再将其发布为 `models/ranker/` 中的部署版本。
+
+预处理器不输出受保护人口统计属性，并对学生标识做稳定散列。OULAD 点击数据只作为参与度代理，不能解释为掌握度；详见 [data/README.md](data/README.md)。
+
+当前部署模型使用 76,200 条按学生分组构造的训练样本，验证 AUC 为 0.8248；该指标只衡量参与度代理排序，不代表课程知识掌握预测准确率。
 
 ## 启动 API
 

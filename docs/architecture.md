@@ -25,7 +25,7 @@ Backend API ──────► MySQL / SQLite
 ```text
 LearnPilot-AI/
 ├─ backend/                     主后端可安装包
-│  ├─ backend/app/
+│  ├─ src/backend/app/
 │  │  ├─ api/                   路由与传输层
 │  │  ├─ services/              业务用例
 │  │  ├─ agents/                业务 Agent
@@ -33,8 +33,8 @@ LearnPilot-AI/
 │  │  ├─ models/                持久化实体
 │  │  ├─ schemas/               DTO
 │  │  └─ core/                  配置、安全和数据库
-│  ├─ data/knowledge_base/      可审查的课程种子
-│  ├─ mysql/                    数据库初始化
+│  ├─ data/knowledge_base/      可审查的课程目录种子
+│  ├─ migrations/mysql/         数据库初始化迁移
 │  └─ tests/
 ├─ web/                         Vue 3 前端
 │  ├─ src/api/                  Backend 接口适配
@@ -47,11 +47,16 @@ LearnPilot-AI/
 │  │  ├─ application/           学习闭环编排与多形态资源构建
 │  │  ├─ domain/                领域模型与纯逻辑
 │  │  ├─ infrastructure/        排序、检索、内容安全和 LLM
-│  │  ├─ datasets/              内置与合成数据
+│  │  ├─ datasets/              统一数据契约、OULAD 预处理、内置与合成数据
 │  │  ├─ training/              训练工作流
 │  │  └─ evaluation/            离线评估
 │  ├─ data/benchmarks/          小型评估基准
+│  ├─ data/processed/           统一训练数据（不进入 Git）
 │  └─ tests/
+├─ data/
+│  ├─ sources.yaml              外部来源、许可证、版本与导入策略
+│  └─ external/                 外部数据与课程原始材料（不进入 Git）
+├─ tools/                       仓库级来源校验与同步工具
 ├─ docs/                        仓库级文档
 ├─ Dockerfile                   多阶段镜像
 ├─ docker-compose.yml           本地完整服务栈
@@ -100,6 +105,8 @@ ml/reports/
 ```
 
 任何干净检出都能依次执行 `learnpilot-ml-generate`、`learnpilot-ml-train`、`learnpilot-ml-evaluate` 重建这些内容。
+
+`ml/models/ranker/` 是例外：这里只保存经过验证的只读部署模型及其元数据。当前模型采用 LightGBM 文本格式，镜像构建和服务加载都会验证来源字段、特征版本及 SHA-256；运行时重新训练仍写入被忽略的 `ml/artifacts/`。
 
 ## 接口稳定性
 

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.11-slim AS runtime
+FROM python:3.11-slim-bookworm AS runtime
 
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -15,6 +15,7 @@ RUN groupadd --gid 10001 learnpilot \
 
 FROM runtime AS backend
 
+ENV LEARNPILOT_BACKEND_ROOT=/app/backend
 COPY --chown=learnpilot:learnpilot backend /app/backend
 RUN --mount=type=cache,id=learnpilot-backend-pip,target=/root/.cache/pip,sharing=locked \
     pip install /app/backend
@@ -29,7 +30,8 @@ CMD ["learnpilot-backend"]
 
 FROM runtime AS ml
 
-RUN apt-get update \
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get -o Acquire::Retries=5 -o Acquire::https::Timeout=60 update \
     && apt-get install --yes --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -57,9 +59,9 @@ RUN --mount=type=cache,id=learnpilot-ml-pip-v2,target=/root/.cache/pip,sharing=l
     pip install /app/ml
 
 ENV LEARNPILOT_ML_ROOT=/app/ml
+ENV LEARNPILOT_RANKER_MODEL_DIR=/app/ml/models/ranker
 USER learnpilot
-RUN learnpilot-ml-generate
-RUN learnpilot-ml-train
+RUN python -c "from ml_service.infrastructure.ranker import TrainableRanker; status=TrainableRanker().status(); assert status['dataset_name']=='Open University Learning Analytics Dataset (OULAD)'; assert status['artifact_format']=='lightgbm-text'; assert status['fallback_reason'] is None"
 
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=12 \

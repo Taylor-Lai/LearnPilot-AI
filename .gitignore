@@ -32,6 +32,8 @@ venv/
 # Reproducible ML outputs
 ml/artifacts/
 ml/data/generated/
+data/external/
+ml/data/processed/
 ml/reports/
 
 # Editors and operating systems
