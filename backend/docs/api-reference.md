@@ -64,7 +64,7 @@ Document recommendations use:
 }
 ```
 
-Redis 可用时任务进入 RQ Worker，并依次持久化 `10/45/80/100` 阶段进度；Redis 不可用时自动同步降级，接口契约不变。结果写入 `producer_task` 和 `producer_artifact`，包含 `lecture`、`mind_map`、`exercises`、`reading`、`videos`、`code_examples`、`datasets`、`roadmap`、课程证据和智能体执行轨迹。
+Redis 可用时任务进入 RQ Worker，并依次持久化 `10/45/80/83…95/100` 阶段进度；视频任务在 80% 后按五幕逐段执行讯飞配音和 FFmpeg 渲染。Redis 不可用时自动同步降级，接口契约不变。结果写入 `producer_task` 和 `producer_artifact`，包含 `lecture`、`mind_map`、`exercises`、`reading`、`videos`、`code_examples`、`datasets`、`roadmap`、课程证据和智能体执行轨迹。
 
 `GET /producer/tasks`
 
@@ -89,6 +89,10 @@ Returns the persisted multi-agent generation result.
 `GET /producer/export/{task_id}?format=docx|pptx|pdf`
 
 将已完成任务导出为可直接打开的 DOCX、PPTX 或 PDF 文件。接口沿用任务所有者鉴权；任务未完成时返回 `409`，格式不受支持时返回 `422`。
+
+`GET /producer/video/{task_id}`
+
+以内联 `video/mp4` 返回任务生成的正式微课，沿用任务所有者鉴权。任务未完成或视频仍在降级预览状态时返回 `409`，视频文件丢失时返回 `404`。
 
 `POST /producer/chat`
 

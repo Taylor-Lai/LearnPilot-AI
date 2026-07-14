@@ -28,6 +28,7 @@ venv/
 *.sqlite
 *.sqlite3
 *.log
+backend/generated/
 
 # Reproducible ML outputs
 ml/artifacts/

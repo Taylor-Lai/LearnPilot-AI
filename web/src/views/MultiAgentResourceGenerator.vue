@@ -237,8 +237,17 @@
                   <div v-else-if="!videos.length" class="empty-state" @click="activeKey = 'qa'">待生成，请先完成问答</div>
                   <div v-else class="video-grid">
                     <article v-for="video in pagedVideos" :key="video.id" class="video-card">
+                      <video
+                        v-if="video.mp4Available && video.url"
+                        class="video-player"
+                        :src="video.url"
+                        controls
+                        preload="metadata"
+                        playsinline
+                        :aria-label="`${video.title} 播放器`"
+                      />
                       <iframe
-                        v-if="video.animationHtml"
+                        v-else-if="video.animationHtml"
                         class="animation-preview"
                         :srcdoc="video.animationHtml"
                         sandbox=""
@@ -250,7 +259,8 @@
                         <em>{{ video.duration || '未提供' }}</em>
                       </div>
                       <strong>{{ video.title }}</strong>
-                      <span v-if="video.mediaStatus === 'preview'" class="preview-badge">动画预览</span>
+                      <span v-if="video.mediaStatus === 'ready'" class="ready-badge">MP4 · 讯飞配音</span>
+                      <span v-else-if="video.mediaStatus === 'preview'" class="preview-badge">动画预览</span>
                       <p>{{ video.desc }}</p>
                       <div class="video-meta">
                         <span>{{ video.level || '未提供' }}</span>
@@ -385,6 +395,7 @@ import {
   chatWithAI,
   createTask,
   downloadTaskExport,
+  downloadTaskVideo,
   getCodeExamples,
   getExercises,
   getRoadmap,
@@ -404,7 +415,7 @@ import {
 const router = useRouter()
 
 const POLL_INTERVAL_MS = 2000
-const POLL_MAX_MS = 60000
+const POLL_MAX_MS = 600000
 const DEFAULT_TASK_TYPES = ['lecture', 'mind_map', 'exercise', 'video', 'code', 'dataset', 'roadmap']
 
 const activeKey = ref('qa')
@@ -477,6 +488,7 @@ const documentSections = reactive([])
 const activeDoc = computed(() => documentSections[activeDocIndex.value] || { title: '', content: '', points: [] })
 
 const videos = reactive([])
+const videoObjectUrls = new Set()
 const totalVideoPages = computed(() => Math.max(1, Math.ceil(videos.length / pageSize)))
 const pagedVideos = computed(() => videos.slice((videoPage.value - 1) * pageSize, videoPage.value * pageSize))
 
@@ -698,7 +710,8 @@ function mapVideos(raw) {
     duration: video.duration || '',
     level: video.level || '',
     type: video.type || '视频',
-    url: video.url || '',
+    url: video.mp4_available ? '' : (video.url || ''),
+    apiUrl: video.url || '',
     generated: Boolean(video.generated),
     mediaStatus: video.media_status || '',
     renderingMode: video.rendering_mode || '',
@@ -756,6 +769,27 @@ function applyTaskResult(result, topic) {
   resourceGenerated.value = true
 }
 
+function clearVideoObjectUrls() {
+  videoObjectUrls.forEach(url => URL.revokeObjectURL(url))
+  videoObjectUrls.clear()
+}
+
+async function hydrateRenderedVideo(taskId) {
+  const rendered = videos.find(video => video.mp4Available && video.apiUrl)
+  if (!rendered) return
+  clearVideoObjectUrls()
+  try {
+    const blob = await downloadTaskVideo(taskId)
+    const url = URL.createObjectURL(blob)
+    videoObjectUrls.add(url)
+    rendered.url = url
+  } catch (error) {
+    console.error('加载正式视频失败:', error)
+    rendered.mediaStatus = 'preview'
+    rendered.mp4Available = false
+  }
+}
+
 function clearPollTimer() {
   if (pollTimer) {
     clearTimeout(pollTimer)
@@ -777,6 +811,7 @@ async function fetchTaskResult(taskId) {
   const resultRes = await getTaskResult(taskId)
   applyTaskStatus(resultRes)
   applyTaskResult(resultRes.result, currentTopic.value)
+  await hydrateRenderedVideo(taskId)
   return resultRes
 }
 
@@ -1280,6 +1315,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearPollTimer()
+  clearVideoObjectUrls()
   if (animationId) cancelAnimationFrame(animationId)
   if (resizeHandler) window.removeEventListener('resize', resizeHandler)
 })
@@ -1881,6 +1917,16 @@ onBeforeUnmount(() => {
   background: #07111f;
 }
 
+.video-player {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 12px;
+  border: 0;
+  border-radius: 15px;
+  background: #07111f;
+  object-fit: contain;
+}
+
 .video-thumb {
   position: relative;
   height: 112px;
@@ -1925,6 +1971,17 @@ onBeforeUnmount(() => {
   color: #155e75;
   font-size: 11px;
   font-weight: 800;
+}
+
+.ready-badge {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border: 1px solid #6ee7b7;
+  border-radius: 999px;
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .video-meta {

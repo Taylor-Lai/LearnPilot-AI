@@ -38,3 +38,9 @@ LearnPilot AI 自主开发代码采用仓库根目录中的 [MIT License](LICENS
 ## 软件依赖
 
 Python 与 JavaScript 依赖及其固定版本分别记录在各包的 `pyproject.toml`、`package-lock.json` 和根目录 `environment.yml` 中。发布作品前应从最终锁定环境生成依赖许可证清单，并人工复核许可证兼容性。
+
+### 视频生成工具与服务
+
+- FFmpeg：<https://ffmpeg.org/>。Docker 镜像使用 Debian Bookworm 的 `ffmpeg` 软件包完成 H.264/AAC 视频合成，具体许可证与编译选项以 Debian 软件包版权元数据为准。
+- WenQuanYi Zen Hei：<https://wenq.org/wqy2/index.cgi?ZenHei>。Docker 镜像使用 Debian 的 `fonts-wqy-zenhei` 软件包绘制中文视频画面，遵循其 GPLv2 与字体嵌入例外条款。
+- 科大讯飞在线语音合成：<https://www.xfyun.cn/doc/tts/online_tts/API.html>。用于生成中文旁白，属于外部商业 API 服务而非仓库开源代码；调用凭证仅通过本地环境变量提供，不进入 Git。

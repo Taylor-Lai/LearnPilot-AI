@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -28,7 +29,16 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = Field(default=1440, alias="JWT_EXPIRE_MINUTES")
     redis_url: str = Field(default="redis://127.0.0.1:6379/0", alias="REDIS_URL")
     producer_async_enabled: bool = Field(default=True, alias="PRODUCER_ASYNC_ENABLED")
-    producer_job_timeout_seconds: int = Field(default=180, alias="PRODUCER_JOB_TIMEOUT_SECONDS")
+    producer_job_timeout_seconds: int = Field(default=600, alias="PRODUCER_JOB_TIMEOUT_SECONDS")
+    video_render_enabled: bool = Field(default=False, alias="LEARNPILOT_VIDEO_RENDER_ENABLED")
+    video_output_dir: str = Field(default="backend/generated/videos", alias="LEARNPILOT_VIDEO_OUTPUT_DIR")
+    xfyun_tts_app_id: str = Field(default="", alias="XFYUN_TTS_APP_ID")
+    xfyun_tts_api_key: str = Field(default="", alias="XFYUN_TTS_API_KEY")
+    xfyun_tts_api_secret: str = Field(default="", alias="XFYUN_TTS_API_SECRET")
+    xfyun_tts_voice: str = Field(default="x4_xiaoyan", alias="XFYUN_TTS_VOICE")
+    xfyun_tts_speed: int = Field(default=50, ge=0, le=100, alias="XFYUN_TTS_SPEED")
+    xfyun_tts_volume: int = Field(default=55, ge=0, le=100, alias="XFYUN_TTS_VOLUME")
+    xfyun_tts_timeout_seconds: int = Field(default=45, ge=5, le=180, alias="XFYUN_TTS_TIMEOUT_SECONDS")
     dashscope_api_key: str = Field(default="", alias="DASHSCOPE_API_KEY")
     spark_api_password: str = Field(default="", alias="SPARK_API_PASSWORD")
     spark_model: str = Field(default="xop3qwen1b7", alias="SPARK_MODEL")
@@ -73,6 +83,34 @@ class Settings(BaseSettings):
         if self.cors_origins.strip() == "*":
             return ["*"]
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def xfyun_tts_credentials(self) -> tuple[str, str] | None:
+        if self.xfyun_tts_api_key and self.xfyun_tts_api_secret:
+            return self.xfyun_tts_api_key, self.xfyun_tts_api_secret
+        if ":" in self.spark_api_password:
+            api_key, api_secret = self.spark_api_password.split(":", 1)
+            if api_key and api_secret:
+                return api_key, api_secret
+        return None
+
+    @property
+    def video_output_path(self) -> Path:
+        configured = Path(self.video_output_dir).expanduser()
+        if configured.is_absolute():
+            return configured.resolve()
+        repository_root = Path(__file__).resolve().parents[5]
+        return (repository_root / configured).resolve()
+
+    @property
+    def video_font_candidates(self) -> list[Path]:
+        return [
+            Path("C:/Windows/Fonts/msyh.ttc"),
+            Path("C:/Windows/Fonts/msyhbd.ttc"),
+            Path("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"),
+            Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+            Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"),
+        ]
 
     def validate_runtime(self) -> None:
         if self.app_env.lower() != "production":

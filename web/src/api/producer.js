@@ -55,6 +55,25 @@ export async function downloadTaskExport(taskId, format = 'docx') {
   return response.blob()
 }
 
+export async function downloadTaskVideo(taskId) {
+  const host = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+  const token = localStorage.getItem('token')
+  const response = await fetch(`${host}/producer/video/${encodeURIComponent(taskId)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!response.ok) {
+    let message = `视频加载失败（HTTP ${response.status}）`
+    try {
+      const payload = await response.json()
+      message = payload.detail || payload.message || message
+    } catch {
+      // Keep the HTTP status message when the server did not return JSON.
+    }
+    throw new Error(message)
+  }
+  return response.blob()
+}
+
 export async function listTasks(params = {}) {
   const limit = Number(params.limit) > 0 ? Number(params.limit) : 20
   return request({
@@ -134,6 +153,7 @@ export default {
   getTaskStatus,
   getTaskResult,
   downloadTaskExport,
+  downloadTaskVideo,
   listTasks,
   chatWithAI,
   getRoadmap,

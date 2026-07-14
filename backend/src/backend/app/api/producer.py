@@ -6,11 +6,12 @@ import json
 import logging
 import re
 from html import escape
+from pathlib import Path
 from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -27,6 +28,7 @@ from backend.app.models import (
     User,
 )
 from backend.app.services.export_service import learning_resource_export_service
+from backend.app.services.video_renderer import VideoRenderError, video_render_service
 
 router = APIRouter(prefix="/producer", tags=["producer"])
 logger = logging.getLogger(__name__)
@@ -659,6 +661,41 @@ def _execute_producer_task(db: Session, task_id: str) -> None:
         db.commit()
         _stop_if_cancelled(db, task)
 
+        if "video" in requested_types and get_settings().video_render_enabled:
+            generated_video = next((item for item in result.get("videos", []) if item.get("generated")), None)
+            if generated_video:
+                try:
+                    def update_video_progress(completed: int, total: int) -> None:
+                        task.progress = min(95, 80 + round(15 * completed / max(1, total)))
+                        db.commit()
+                        _stop_if_cancelled(db, task)
+
+                    rendered = video_render_service.render(
+                        task_id,
+                        result["topic"],
+                        list(generated_video.get("scenes") or []),
+                        progress_callback=update_video_progress,
+                    )
+                    generated_video.update(
+                        {
+                            "description": "依据个性化分镜生成的讯飞配音 MP4 微课。",
+                            "duration": _format_duration(rendered.duration_seconds),
+                            "url": f"/producer/video/{task_id}",
+                            "media_status": "ready",
+                            "rendering_mode": "mp4_tts_ffmpeg",
+                            "mp4_available": True,
+                            "narration_provider": rendered.narration_provider,
+                            "voice": rendered.voice,
+                        }
+                    )
+                except VideoRenderError as exc:
+                    logger.warning("Video rendering failed for task %s: %s", task_id, exc)
+                    generated_video["render_error"] = str(exc)
+            task.result_json = result
+            task.progress = max(95, task.progress)
+            db.commit()
+            _stop_if_cancelled(db, task)
+
         db.query(ProducerArtifact).filter(ProducerArtifact.task_id == task_id).delete()
         db.add_all(_artifact_rows(task_id, result, requested_types))
         task.result_json = result
@@ -690,6 +727,12 @@ def run_producer_task(task_id: str) -> None:
 def _producer_job_id(task_id: str) -> str:
     """Build an RQ-compatible ID (RQ rejects IDs containing colons)."""
     return f"producer-{task_id}"
+
+
+def _format_duration(seconds: float) -> str:
+    rounded = max(0, int(round(seconds)))
+    minutes, remaining = divmod(rounded, 60)
+    return f"{minutes} 分 {remaining:02d} 秒" if minutes else f"{remaining} 秒"
 
 
 def _enqueue_producer_task(task_id: str) -> bool:
@@ -938,6 +981,31 @@ def export_task_result(
             "Content-Length": str(len(exported.content)),
             "X-Content-Type-Options": "nosniff",
         },
+    )
+
+
+@router.get("/video/{task_id}")
+def stream_task_video(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(optional_user),
+) -> FileResponse:
+    task = _task_or_404(db, task_id)
+    _authorize_task(task, current_user)
+    result = task.result_json if isinstance(task.result_json, dict) else {}
+    video = next((item for item in result.get("videos", []) if item.get("mp4_available")), None)
+    if task.status != "completed" or video is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Task video is not ready")
+    path = (get_settings().video_output_path / f"{task_id}.mp4").resolve()
+    if path.parent != get_settings().video_output_path or not path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task video file is missing")
+    filename = f"{re.sub(r'[^A-Za-z0-9_-]+', '-', task.topic).strip('-') or 'learnpilot'}-{task_id[:8]}.mp4"
+    return FileResponse(
+        Path(path),
+        media_type="video/mp4",
+        filename=filename,
+        content_disposition_type="inline",
+        headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"},
     )
 
 

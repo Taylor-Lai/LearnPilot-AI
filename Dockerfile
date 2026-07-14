@@ -16,9 +16,16 @@ RUN groupadd --gid 10001 learnpilot \
 FROM runtime AS backend
 
 ENV LEARNPILOT_BACKEND_ROOT=/app/backend
+RUN --mount=type=cache,id=learnpilot-backend-apt-cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=learnpilot-backend-apt-lists,target=/var/lib/apt/lists,sharing=locked \
+    sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get -o Acquire::Retries=10 -o Acquire::https::Timeout=120 update \
+    && apt-get install --yes --no-install-recommends ffmpeg fonts-wqy-zenhei
 COPY --chown=learnpilot:learnpilot backend /app/backend
 RUN --mount=type=cache,id=learnpilot-backend-pip,target=/root/.cache/pip,sharing=locked \
-    pip install /app/backend
+    pip install /app/backend \
+    && mkdir -p /app/backend/generated/videos \
+    && chown -R learnpilot:learnpilot /app/backend/generated
 
 USER learnpilot
 

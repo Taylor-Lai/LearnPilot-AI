@@ -166,6 +166,12 @@ python backend/scripts/seed_ai_course.py
 
 多智能体生成任务完成后，可在资源生成页直接导出 DOCX、PPTX 和 PDF。后端导出接口为 `GET /producer/export/{task_id}?format=docx|pptx|pdf`，并执行与任务结果相同的所有者鉴权。
 
+## 讯飞配音 MP4 微课
+
+请求资源类型包含 `video` 时，系统将五幕个性化分镜交给讯飞在线语音合成，并用 FFmpeg 生成 720P H.264/AAC MP4。视频通过受任务所有者保护的 `GET /producer/video/{task_id}` 返回，前端使用原生播放器展示；配音或渲染不可用时自动降级为 HTML 动画预览，不影响其他资源产物。
+
+Docker 镜像已包含 FFmpeg 和中文字体。本机直接运行后端时需自行确保 `ffmpeg` 位于 `PATH`；相关开关、输出目录、讯飞 APPID 和发音人参数见 `.env.example`。当 `SPARK_API_PASSWORD` 使用 `APIKey:APISecret` 格式时，TTS 可安全复用该凭证，无需在环境文件中重复保存。
+
 ## 测试
 
 ```powershell

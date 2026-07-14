@@ -15,6 +15,14 @@ x-llm-environment: &llm-environment
   SPARK_BASE_URL: ${SPARK_BASE_URL:-https://maas-api.cn-huabei-1.xf-yun.com/v2}
   SPARK_TIMEOUT_SECONDS: ${SPARK_TIMEOUT_SECONDS:-90}
   DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+  LEARNPILOT_VIDEO_RENDER_ENABLED: ${LEARNPILOT_VIDEO_RENDER_ENABLED:-true}
+  LEARNPILOT_VIDEO_OUTPUT_DIR: /app/backend/generated/videos
+  XFYUN_TTS_APP_ID: ${XFYUN_TTS_APP_ID:-}
+  XFYUN_TTS_API_KEY: ${XFYUN_TTS_API_KEY:-}
+  XFYUN_TTS_API_SECRET: ${XFYUN_TTS_API_SECRET:-}
+  XFYUN_TTS_VOICE: ${XFYUN_TTS_VOICE:-x4_xiaoyan}
+  XFYUN_TTS_SPEED: ${XFYUN_TTS_SPEED:-50}
+  XFYUN_TTS_VOLUME: ${XFYUN_TTS_VOLUME:-55}
 
 services:
   mysql:
@@ -93,11 +101,13 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-learning_agent}
       REDIS_URL: redis://redis:6379/0
       PRODUCER_ASYNC_ENABLED: "true"
-      PRODUCER_JOB_TIMEOUT_SECONDS: 180
+      PRODUCER_JOB_TIMEOUT_SECONDS: 600
       ML_SERVICE_URL: http://ml-service:8000
       USE_ML_SERVICE: "true"
       ML_SERVICE_TIMEOUT_SECONDS: ${ML_SERVICE_TIMEOUT_SECONDS:-90}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+    volumes:
+      - video-data:/app/backend/generated/videos
     ports:
       - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PUBLISHED_PORT:-8001}:8001"
     expose:
@@ -131,8 +141,10 @@ services:
       ML_SERVICE_URL: http://ml-service:8000
       USE_ML_SERVICE: "true"
       ML_SERVICE_TIMEOUT_SECONDS: ${ML_SERVICE_TIMEOUT_SECONDS:-90}
-      PRODUCER_JOB_TIMEOUT_SECONDS: ${PRODUCER_JOB_TIMEOUT_SECONDS:-180}
+      PRODUCER_JOB_TIMEOUT_SECONDS: ${PRODUCER_JOB_TIMEOUT_SECONDS:-600}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+    volumes:
+      - video-data:/app/backend/generated/videos
 
   web:
     image: learnpilot-web:local
@@ -150,3 +162,4 @@ services:
 volumes:
   mysql-data:
   redis-data:
+  video-data:

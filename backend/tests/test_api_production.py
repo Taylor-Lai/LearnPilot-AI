@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -20,6 +23,7 @@ from backend.app.core.database import Base, get_db
 from backend.app.core.security import hash_password
 from backend.app.main import app
 from backend.app.models import Course, KnowledgePoint, LearningPath, Question, User
+from backend.app.services.video_renderer import RenderedVideo
 
 
 class ProductionApiTest(unittest.TestCase):
@@ -204,6 +208,40 @@ class ProductionApiTest(unittest.TestCase):
             self.client.get(f"/producer/export/{task_id}?format=docx", headers=stranger_headers).status_code,
             403,
         )
+
+    def test_producer_renders_and_streams_authenticated_mp4(self) -> None:
+        owner = self.client.post(
+            "/api/auth/register",
+            json={"username": "video-owner", "email": "video@example.com", "password": "secret123"},
+        ).json()
+        headers = {"Authorization": f"Bearer {owner['access_token']}"}
+        with tempfile.TemporaryDirectory() as temporary:
+            output_dir = Path(temporary)
+            video_path = output_dir / "placeholder.mp4"
+            video_path.write_bytes(b"\x00\x00\x00\x18ftypmp42test-video")
+            settings = SimpleNamespace(video_render_enabled=True, video_output_path=output_dir)
+            rendered = RenderedVideo(video_path, 42.0, "iFlytek online TTS", "x4_xiaoyan")
+            with (
+                patch("backend.app.api.producer._enqueue_producer_task", return_value=False),
+                patch("backend.app.api.producer.get_settings", return_value=settings),
+                patch("backend.app.api.producer.video_render_service.render", return_value=rendered),
+            ):
+                created = self.client.post(
+                    "/producer/task",
+                    headers=headers,
+                    json={"topic": "卷积神经网络", "requirement": "生成配音视频", "types": ["video"]},
+                )
+                self.assertEqual(created.status_code, 200)
+                task_id = created.json()["task_id"]
+                (output_dir / f"{task_id}.mp4").write_bytes(video_path.read_bytes())
+                result = self.client.get(f"/producer/result/{task_id}", headers=headers).json()["result"]
+                self.assertTrue(result["videos"][0]["mp4_available"])
+                self.assertEqual(result["videos"][0]["media_status"], "ready")
+
+                streamed = self.client.get(f"/producer/video/{task_id}", headers=headers)
+                self.assertEqual(streamed.status_code, 200)
+                self.assertEqual(streamed.headers["content-type"], "video/mp4")
+                self.assertIn(b"ftypmp42", streamed.content)
 
     def test_producer_queues_when_worker_backend_is_available(self) -> None:
         from backend.app.api.producer import _producer_job_id
