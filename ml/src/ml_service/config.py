@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 PACKAGE_DIR = Path(__file__).resolve().parent
-ML_ROOT = PACKAGE_DIR.parents[1]
+ML_ROOT = Path(os.getenv("LEARNPILOT_ML_ROOT", PACKAGE_DIR.parents[1])).expanduser().resolve()
 DATA_DIR = ML_ROOT / "data"
 GENERATED_DATA_DIR = DATA_DIR / "generated"
 ARTIFACT_DIR = ML_ROOT / "artifacts"

@@ -125,15 +125,17 @@ def health() -> dict:
         except Exception:
             ml_status = False
     redis_status = _check_redis(settings.redis_url)
+    database_status = check_database()
     llm_provider = settings.learnpilot_llm_provider.lower()
     provider_credential = settings.dashscope_api_key if llm_provider == "qwen" else settings.spark_api_password
     llm_configured = bool(provider_credential) or settings.learnpilot_llm_mode.lower() in {
         "template",
         "offline",
     }
+    dependencies_ok = database_status and redis_status and (ml_status or not settings.use_ml_service)
     return {
-        "status": "ok",
-        "database": check_database(),
+        "status": "ok" if dependencies_ok else "degraded",
+        "database": database_status,
         "ml_service": ml_status,
         "redis": redis_status,
         "llm_configured": llm_configured,

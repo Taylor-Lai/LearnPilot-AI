@@ -59,7 +59,7 @@ python backend/scripts/init_sqlite_demo.py
 ```text
 USE_ML_SERVICE=true
 ML_SERVICE_URL=http://127.0.0.1:8000
-ML_SERVICE_TIMEOUT_SECONDS=15
+ML_SERVICE_TIMEOUT_SECONDS=90
 ```
 
 当服务发现只提供不含协议的 `host:port` 时，客户端会自动补全 `http://`。

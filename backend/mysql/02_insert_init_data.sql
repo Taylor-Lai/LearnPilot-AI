@@ -1,5 +1,4 @@
 SET NAMES utf8mb4;
-USE learning_agent;
 
 INSERT INTO `user` (id, username, display_name, role)
 VALUES (1, 'demo_student', '演示学生', 'student')

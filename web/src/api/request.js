@@ -255,6 +255,7 @@ async function request(options = {}) {
   const config = {
     method: upperMethod,
     headers: {
+      Accept: 'application/json',
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,

@@ -1,9 +1,3 @@
-CREATE DATABASE IF NOT EXISTS learning_agent
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE learning_agent;
-
 CREATE TABLE IF NOT EXISTS `user` (
   id INT PRIMARY KEY AUTO_INCREMENT,
   username VARCHAR(64) NOT NULL,

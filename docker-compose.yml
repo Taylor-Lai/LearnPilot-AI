@@ -1,3 +1,5 @@
+name: learnpilot
+
 x-backend-image: &backend-image
   image: learnpilot-backend:local
   build:
@@ -5,16 +7,26 @@ x-backend-image: &backend-image
     dockerfile: Dockerfile
     target: backend
 
+x-llm-environment: &llm-environment
+  LEARNPILOT_LLM_MODE: ${LEARNPILOT_LLM_MODE:-template}
+  LEARNPILOT_LLM_PROVIDER: ${LEARNPILOT_LLM_PROVIDER:-spark}
+  SPARK_API_PASSWORD: ${SPARK_API_PASSWORD:-}
+  SPARK_MODEL: ${SPARK_MODEL:-xop3qwen1b7}
+  SPARK_BASE_URL: ${SPARK_BASE_URL:-https://maas-api.cn-huabei-1.xf-yun.com/v2}
+  SPARK_TIMEOUT_SECONDS: ${SPARK_TIMEOUT_SECONDS:-90}
+  DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+
 services:
   mysql:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-learnpilot_root}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-learning_agent}
       MYSQL_USER: ${MYSQL_USER:-learnpilot}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-learnpilot_pwd}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
     ports:
-      - "3306:3306"
+      - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${MYSQL_PUBLISHED_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./backend/mysql:/docker-entrypoint-initdb.d:ro
@@ -24,40 +36,54 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+      start_period: 20s
 
   redis:
     image: redis:7.2-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${REDIS_PUBLISHED_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
 
   ml-service:
     image: learnpilot-ml:local
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
       target: ml
     environment:
-      LEARNPILOT_LLM_MODE: ${LEARNPILOT_LLM_MODE:-template}
-      LEARNPILOT_LLM_PROVIDER: ${LEARNPILOT_LLM_PROVIDER:-spark}
-      SPARK_API_PASSWORD: ${SPARK_API_PASSWORD:-}
-      SPARK_MODEL: ${SPARK_MODEL:-xop3qwen1b7}
-      SPARK_BASE_URL: ${SPARK_BASE_URL:-https://maas-api.cn-huabei-1.xf-yun.com/v2}
-      SPARK_TIMEOUT_SECONDS: ${SPARK_TIMEOUT_SECONDS:-90}
-      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      <<: *llm-environment
+      LEARNPILOT_ML_ROOT: /app/ml
     ports:
-      - "8000:8000"
+      - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${ML_PUBLISHED_PORT:-8000}:8000"
+    expose:
+      - "8000"
 
   backend:
     <<: *backend-image
+    restart: unless-stopped
     command: ["sh", "-c", "python backend/scripts/seed_ai_course.py && learnpilot-backend"]
     depends_on:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       ml-service:
-        condition: service_started
+        condition: service_healthy
     environment:
+      <<: *llm-environment
+      APP_ENV: production
+      APP_DEBUG: "false"
+      CORS_ORIGINS: ${DOCKER_CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
       DATABASE_MODE: mysql
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -69,28 +95,31 @@ services:
       PRODUCER_JOB_TIMEOUT_SECONDS: 180
       ML_SERVICE_URL: http://ml-service:8000
       USE_ML_SERVICE: "true"
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
-      LEARNPILOT_LLM_MODE: ${LEARNPILOT_LLM_MODE:-template}
-      LEARNPILOT_LLM_PROVIDER: ${LEARNPILOT_LLM_PROVIDER:-spark}
-      SPARK_API_PASSWORD: ${SPARK_API_PASSWORD:-}
-      SPARK_MODEL: ${SPARK_MODEL:-xop3qwen1b7}
-      SPARK_BASE_URL: ${SPARK_BASE_URL:-https://maas-api.cn-huabei-1.xf-yun.com/v2}
-      SPARK_TIMEOUT_SECONDS: ${SPARK_TIMEOUT_SECONDS:-90}
-      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      ML_SERVICE_TIMEOUT_SECONDS: ${ML_SERVICE_TIMEOUT_SECONDS:-90}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
     ports:
-      - "8001:8001"
+      - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PUBLISHED_PORT:-8001}:8001"
+    expose:
+      - "8001"
 
   worker:
     <<: *backend-image
+    restart: unless-stopped
+    healthcheck:
+      disable: true
     command: ["rq", "worker", "--url", "redis://redis:6379/0", "default"]
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       mysql:
         condition: service_healthy
       ml-service:
-        condition: service_started
+        condition: service_healthy
     environment:
+      <<: *llm-environment
+      APP_ENV: production
+      APP_DEBUG: "false"
+      CORS_ORIGINS: ${DOCKER_CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
       DATABASE_MODE: mysql
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -100,23 +129,23 @@ services:
       REDIS_URL: redis://redis:6379/0
       ML_SERVICE_URL: http://ml-service:8000
       USE_ML_SERVICE: "true"
-      LEARNPILOT_LLM_MODE: ${LEARNPILOT_LLM_MODE:-template}
-      LEARNPILOT_LLM_PROVIDER: ${LEARNPILOT_LLM_PROVIDER:-spark}
-      SPARK_API_PASSWORD: ${SPARK_API_PASSWORD:-}
-      SPARK_MODEL: ${SPARK_MODEL:-xop3qwen1b7}
-      SPARK_BASE_URL: ${SPARK_BASE_URL:-https://maas-api.cn-huabei-1.xf-yun.com/v2}
-      SPARK_TIMEOUT_SECONDS: ${SPARK_TIMEOUT_SECONDS:-90}
+      ML_SERVICE_TIMEOUT_SECONDS: ${ML_SERVICE_TIMEOUT_SECONDS:-90}
+      PRODUCER_JOB_TIMEOUT_SECONDS: ${PRODUCER_JOB_TIMEOUT_SECONDS:-180}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
 
   web:
     image: learnpilot-web:local
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
       target: web
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
-      - "8080:80"
+      - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${WEB_PUBLISHED_PORT:-8080}:80"
 
 volumes:
   mysql-data:
+  redis-data:

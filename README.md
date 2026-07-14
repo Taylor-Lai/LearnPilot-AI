@@ -152,11 +152,15 @@ npm run build
 仓库只维护一个多阶段 Dockerfile。后端 API 与 RQ Worker 复用同一后端镜像。
 
 ```powershell
-docker-compose build
-docker-compose up
+Copy-Item .env.example .env
+# 先在 .env 中填写 MYSQL_ROOT_PASSWORD、MYSQL_PASSWORD 和 JWT_SECRET_KEY
+docker compose build
+docker compose up -d
 ```
 
-完整服务栈包括 `web`、`backend`、`ml-service`、`worker`、`mysql` 和 `redis`。启动后前端地址为 `http://127.0.0.1:8080`。
+完整服务栈包括 `web`、`backend`、`ml-service`、`worker`、`mysql` 和 `redis`。服务均包含健康检查或健康依赖，MySQL 与 Redis 数据分别保存在命名卷中。启动后前端地址为 `http://127.0.0.1:8080`。
+
+宿主机端口可通过 `.env` 中的 `WEB_PUBLISHED_PORT`、`BACKEND_PUBLISHED_PORT`、`ML_PUBLISHED_PORT`、`MYSQL_PUBLISHED_PORT` 和 `REDIS_PUBLISHED_PORT` 调整。端口默认仅监听 `127.0.0.1`；需要局域网演示时可将 `DOCKER_BIND_ADDRESS` 显式设为 `0.0.0.0`。公网部署时还必须将 `DOCKER_CORS_ORIGINS` 设置为实际可信来源，且不得使用示例密码。
 
 ## 账号与安全
 
