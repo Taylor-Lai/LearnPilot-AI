@@ -31,8 +31,8 @@ class Settings(BaseSettings):
     producer_job_timeout_seconds: int = Field(default=180, alias="PRODUCER_JOB_TIMEOUT_SECONDS")
     dashscope_api_key: str = Field(default="", alias="DASHSCOPE_API_KEY")
     spark_api_password: str = Field(default="", alias="SPARK_API_PASSWORD")
-    spark_model: str = Field(default="4.0Ultra", alias="SPARK_MODEL")
-    spark_base_url: str = Field(default="https://spark-api-open.xf-yun.com/v1", alias="SPARK_BASE_URL")
+    spark_model: str = Field(default="xop3qwen1b7", alias="SPARK_MODEL")
+    spark_base_url: str = Field(default="https://maas-api.cn-huabei-1.xf-yun.com/v2", alias="SPARK_BASE_URL")
     spark_timeout_seconds: int = Field(default=90, alias="SPARK_TIMEOUT_SECONDS")
     qwen_model: str = Field(default="qwen3.7-plus", alias="QWEN_MODEL")
     qwen_base_url: str = Field(

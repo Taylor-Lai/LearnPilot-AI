@@ -2,6 +2,7 @@ services:
   - type: web
     name: learnpilot-ml
     runtime: python
+    autoDeployTrigger: off
     rootDir: ml
     buildCommand: pip install -e . && learnpilot-ml-generate && learnpilot-ml-train
     startCommand: learnpilot-ml-api
@@ -16,7 +17,9 @@ services:
       - key: SPARK_API_PASSWORD
         sync: false
       - key: SPARK_MODEL
-        value: 4.0Ultra
+        value: xop3qwen1b7
+      - key: SPARK_BASE_URL
+        value: https://maas-api.cn-huabei-1.xf-yun.com/v2
       - key: SPARK_TIMEOUT_SECONDS
         value: 90
       - key: DASHSCOPE_API_KEY
@@ -25,6 +28,7 @@ services:
   - type: web
     name: learnpilot-backend
     runtime: python
+    autoDeployTrigger: off
     rootDir: backend
     buildCommand: pip install -e . && python scripts/init_sqlite_demo.py
     startCommand: learnpilot-backend
@@ -56,7 +60,9 @@ services:
       - key: SPARK_API_PASSWORD
         sync: false
       - key: SPARK_MODEL
-        value: 4.0Ultra
+        value: xop3qwen1b7
+      - key: SPARK_BASE_URL
+        value: https://maas-api.cn-huabei-1.xf-yun.com/v2
       - key: SPARK_TIMEOUT_SECONDS
         value: 90
       - key: DASHSCOPE_API_KEY
@@ -69,6 +75,7 @@ services:
   - type: web
     name: learnpilot-web
     runtime: static
+    autoDeployTrigger: off
     rootDir: web
     buildCommand: npm ci && npm run build
     staticPublishPath: dist

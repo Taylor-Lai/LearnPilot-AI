@@ -16,6 +16,7 @@ os.environ.setdefault("DATABASE_MODE", "sqlite")
 os.environ.setdefault("SQLITE_DATABASE_URL", "sqlite://")
 os.environ.setdefault("USE_ML_SERVICE", "false")
 os.environ.setdefault("LEARNPILOT_LLM_MODE", "template")
+os.environ["PRODUCER_ASYNC_ENABLED"] = "false"
 
 from backend.app.api.producer import _execute_producer_task
 from backend.app.core.database import Base, get_db
@@ -146,11 +147,12 @@ class ProductionApiTest(unittest.TestCase):
         ).json()
         owner_headers = {"Authorization": f"Bearer {owner['access_token']}"}
 
-        created = self.client.post(
-            "/producer/task",
-            headers=owner_headers,
-            json={"topic": "卷积神经网络", "requirement": "面向初学者", "types": ["lecture", "exercise"]},
-        )
+        with patch("backend.app.api.producer._enqueue_producer_task", return_value=False):
+            created = self.client.post(
+                "/producer/task",
+                headers=owner_headers,
+                json={"topic": "卷积神经网络", "requirement": "面向初学者", "types": ["lecture", "exercise"]},
+            )
         self.assertEqual(created.status_code, 200)
         task_id = created.json()["task_id"]
 
@@ -206,6 +208,11 @@ class ProductionApiTest(unittest.TestCase):
         )
 
     def test_producer_queues_when_worker_backend_is_available(self) -> None:
+        from backend.app.api.producer import _producer_job_id
+
+        self.assertEqual(_producer_job_id("abc123"), "producer-abc123")
+        self.assertNotIn(":", _producer_job_id("abc123"))
+
         account = self.client.post(
             "/api/auth/register",
             json={"username": "queued", "email": "queued@example.com", "password": "secret123"},

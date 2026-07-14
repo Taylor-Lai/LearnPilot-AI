@@ -432,8 +432,8 @@ class RagAndGenerationTest(unittest.TestCase):
             settings = LLMSettings.from_env()
             self.assertEqual(settings.provider, "spark")
             self.assertEqual(settings.api_key, "test-password")
-            self.assertEqual(settings.model, "4.0Ultra")
-            self.assertEqual(settings.base_url, "https://spark-api-open.xf-yun.com/v1")
+            self.assertEqual(settings.model, "xop3qwen1b7")
+            self.assertEqual(settings.base_url, "https://maas-api.cn-huabei-1.xf-yun.com/v2")
         finally:
             for name, value in original.items():
                 if value is None:

@@ -159,7 +159,7 @@ docker-compose up
 
 完整服务栈包括 `web`、`backend`、`ml-service`、`worker`、`mysql` 和 `redis`。启动后前端地址为 `http://127.0.0.1:8080`。
 
-Render 部署使用根目录 [render.yaml](render.yaml)。Blueprint 会创建 Web 静态站点、Backend 与 ML 两个 Web Service，Backend 通过私有网络调用 ML。
+Render 部署使用根目录 [render.yaml](render.yaml)。Blueprint 会创建 Web 静态站点、Backend 与 ML 两个 Web Service，Backend 通过私有网络调用 ML。为避免开发期每次提交触发三项重复构建，Blueprint 已关闭自动部署；完成本地验证后在 Render 控制台手动部署即可。
 
 ## 账号与安全
 

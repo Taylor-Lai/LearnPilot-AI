@@ -20,8 +20,8 @@ class LLMSettings:
     mode: str = "auto"
     provider: str = "spark"
     api_key: str | None = None
-    model: str = "4.0Ultra"
-    base_url: str = "https://spark-api-open.xf-yun.com/v1"
+    model: str = "xop3qwen1b7"
+    base_url: str = "https://maas-api.cn-huabei-1.xf-yun.com/v2"
     timeout_seconds: int = 90
 
     @classmethod
@@ -36,8 +36,8 @@ class LLMSettings:
             timeout = os.getenv("QWEN_TIMEOUT_SECONDS", "30")
         else:
             api_key = os.getenv("SPARK_API_PASSWORD")
-            model = os.getenv("SPARK_MODEL", "4.0Ultra")
-            base_url = os.getenv("SPARK_BASE_URL", "https://spark-api-open.xf-yun.com/v1")
+            model = os.getenv("SPARK_MODEL", "xop3qwen1b7")
+            base_url = os.getenv("SPARK_BASE_URL", "https://maas-api.cn-huabei-1.xf-yun.com/v2")
             timeout = os.getenv("SPARK_TIMEOUT_SECONDS", "90")
         return cls(
             mode=os.getenv("LEARNPILOT_LLM_MODE", "auto").lower(),

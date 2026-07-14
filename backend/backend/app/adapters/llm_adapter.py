@@ -43,11 +43,11 @@ class LLMAdapter:
         else:
             provider = "spark"
             api_key = self._setting_or_env("spark_api_password", "SPARK_API_PASSWORD")
-            model = self._setting_or_env("spark_model", "SPARK_MODEL", "4.0Ultra")
+            model = self._setting_or_env("spark_model", "SPARK_MODEL", "xop3qwen1b7")
             base_url = self._setting_or_env(
                 "spark_base_url",
                 "SPARK_BASE_URL",
-                "https://spark-api-open.xf-yun.com/v1",
+                "https://maas-api.cn-huabei-1.xf-yun.com/v2",
             )
             timeout_seconds = int(self._setting_or_env("spark_timeout_seconds", "SPARK_TIMEOUT_SECONDS", "90"))
         if not api_key:
@@ -212,7 +212,7 @@ class LLMAdapter:
             result["generation_meta"] = {
                 "provider": provider,
                 "model": (
-                    self._setting_or_env("spark_model", "SPARK_MODEL", "4.0Ultra")
+                    self._setting_or_env("spark_model", "SPARK_MODEL", "xop3qwen1b7")
                     if provider == "spark"
                     else self._setting_or_env("qwen_model", "QWEN_MODEL", "qwen3.7-plus")
                 ),

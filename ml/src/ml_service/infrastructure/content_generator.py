@@ -47,8 +47,8 @@ def load_dotenv_if_present() -> None:
 class OpenAICompatibleClient:
     provider: str = "qwen"
     api_key: str | None = None
-    model: str = "4.0Ultra"
-    base_url: str = "https://spark-api-open.xf-yun.com/v1"
+    model: str = "xop3qwen1b7"
+    base_url: str = "https://maas-api.cn-huabei-1.xf-yun.com/v2"
     timeout_seconds: int = 30
 
     @classmethod

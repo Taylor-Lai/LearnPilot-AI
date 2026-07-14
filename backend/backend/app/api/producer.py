@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import io
 import json
+import logging
 import re
 from html import escape
 from urllib.parse import quote
@@ -28,6 +29,7 @@ from backend.app.models import (
 from backend.app.services.export_service import learning_resource_export_service
 
 router = APIRouter(prefix="/producer", tags=["producer"])
+logger = logging.getLogger(__name__)
 
 DEFAULT_TYPES = ["lecture", "mind_map", "exercise", "video", "code", "dataset", "roadmap"]
 
@@ -681,6 +683,11 @@ def run_producer_task(task_id: str) -> None:
         _execute_producer_task(db, task_id)
 
 
+def _producer_job_id(task_id: str) -> str:
+    """Build an RQ-compatible ID (RQ rejects IDs containing colons)."""
+    return f"producer-{task_id}"
+
+
 def _enqueue_producer_task(task_id: str) -> bool:
     settings = get_settings()
     if not settings.producer_async_enabled:
@@ -698,13 +705,14 @@ def _enqueue_producer_task(task_id: str) -> bool:
         Queue("default", connection=connection).enqueue(
             run_producer_task,
             task_id,
-            job_id=f"producer:{task_id}",
+            job_id=_producer_job_id(task_id),
             job_timeout=settings.producer_job_timeout_seconds,
             result_ttl=3600,
             failure_ttl=86400,
         )
         return True
-    except Exception:
+    except Exception as exc:
+        logger.warning("Producer queue unavailable; using synchronous execution: %s", exc)
         return False
 
 
@@ -719,8 +727,9 @@ def _cancel_queued_job(task_id: str) -> None:
             socket_connect_timeout=0.35,
             socket_timeout=0.35,
         )
-        Job.fetch(f"producer:{task_id}", connection=connection).cancel()
-    except Exception:
+        Job.fetch(_producer_job_id(task_id), connection=connection).cancel()
+    except Exception as exc:
+        logger.warning("Unable to cancel queued producer job %s: %s", task_id, exc)
         return
 
 
