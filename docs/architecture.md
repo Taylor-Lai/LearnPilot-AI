@@ -56,7 +56,6 @@ LearnPilot-AI/
 ├─ Dockerfile                   多阶段镜像
 ├─ docker-compose.yml           本地完整服务栈
 ├─ environment.yml              锁定的项目环境
-├─ render.yaml                  Render Blueprint
 └─ .env.example                 环境变量模板
 ```
 
@@ -87,7 +86,6 @@ datasets / training / evaluation
 | `ml/pyproject.toml` | ML 运行依赖与训练/服务命令 |
 | `docker-compose.yml` | MySQL、Redis、ML、Backend、Worker 编排 |
 | `web/.env.example` | Vite 构建地址与本地代理配置 |
-| `render.yaml` | Render Web、Backend、ML 三服务部署 |
 
 不再维护重复 requirements 或多个 Dockerfile。根环境模板服务于 Python 服务；`web/.env.example` 仅包含 Vite 构建变量。
 

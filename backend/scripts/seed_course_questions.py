@@ -4,7 +4,7 @@ Usage (local MySQL):
   cd backend
   python scripts/seed_course_questions.py
 
-Usage (Render PostgreSQL):
+Usage (PostgreSQL):
   set DATABASE_URL=postgresql://...
   python scripts/seed_course_questions.py --course-id 1
 

@@ -62,7 +62,7 @@ ML_SERVICE_URL=http://127.0.0.1:8000
 ML_SERVICE_TIMEOUT_SECONDS=15
 ```
 
-Render 私有网络可能提供不含协议的 `host:port`，客户端会自动补全 `http://`。
+当服务发现只提供不含协议的 `host:port` 时，客户端会自动补全 `http://`。
 
 ## 测试
 

@@ -17,10 +17,8 @@
 --   - Only calls setval() on existing sequences
 --   - Skips tables/sequences that do not exist
 --
--- Usage (Render PostgreSQL):
+-- Usage (PostgreSQL):
 --   psql "$DATABASE_URL" -f backend/scripts/fix_postgres_sequences.sql
---
--- Or paste into Render Dashboard -> Database -> Connect -> psql shell.
 -- =============================================================================
 
 BEGIN;
