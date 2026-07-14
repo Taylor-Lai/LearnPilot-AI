@@ -52,7 +52,7 @@ class LearningService:
 
     def analyze_profile(self, db: Session, user_id: int, text: str) -> tuple[StudentProfile, dict]:
         try:
-            profile = self.profile_agent.run(text)
+            profile = self._normalize_profile_payload(self.profile_agent.run(text))
             db_profile = (
                 db.query(StudentProfile)
                 .filter(StudentProfile.user_id == user_id)
@@ -231,7 +231,9 @@ class LearningService:
         if not ml_result:
             return self._start_learning_with_local_agents(db, user_id, course_id, requirement)
 
-        profile = self._extract_ml_profile(ml_result) or self.profile_agent.run(requirement)
+        profile = self._normalize_profile_payload(
+            self._extract_ml_profile(ml_result) or self.profile_agent.run(requirement)
+        )
         weak_points = self._extract_ml_weak_points(ml_result, profile)
         if not weak_points:
             weak_points = [item["knowledge_point"] for item in self.diagnosis_agent.run(profile)]
@@ -281,6 +283,41 @@ class LearningService:
             )
 
         return profile, resources, path, nodes
+
+    @staticmethod
+    def _normalize_profile_payload(profile: dict) -> dict:
+        normalized = dict(profile or {})
+        text_fields = (
+            "major",
+            "grade",
+            "course",
+            "goal",
+            "preference",
+            "cognitive_style",
+            "knowledge_level",
+        )
+        for field in text_fields:
+            value = normalized.get(field)
+            if value is None:
+                normalized[field] = ""
+            elif isinstance(value, (list, tuple, set)):
+                normalized[field] = "、".join(str(item) for item in value if item)
+            elif isinstance(value, dict):
+                normalized[field] = "、".join(f"{key}: {item}" for key, item in value.items() if item)
+            else:
+                normalized[field] = str(value)
+
+        weak_points = normalized.get("weak_points") or []
+        if isinstance(weak_points, str):
+            weak_points = [
+                item.strip()
+                for item in weak_points.replace("，", ",").replace("、", ",").replace("；", ",").split(",")
+                if item.strip()
+            ]
+        elif not isinstance(weak_points, list):
+            weak_points = [str(weak_points)]
+        normalized["weak_points"] = [str(item) for item in weak_points if item]
+        return normalized
 
     def _start_learning_with_local_agents(
         self,

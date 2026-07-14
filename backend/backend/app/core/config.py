@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
     ml_service_url: str = Field(default="http://127.0.0.1:8000", alias="ML_SERVICE_URL")
     use_ml_service: bool = Field(default=True, alias="USE_ML_SERVICE")
-    ml_service_timeout_seconds: float = Field(default=15.0, alias="ML_SERVICE_TIMEOUT_SECONDS")
+    ml_service_timeout_seconds: float = Field(default=90.0, alias="ML_SERVICE_TIMEOUT_SECONDS")
     jwt_secret_key: str = Field(default="change-me-in-production", alias="JWT_SECRET_KEY")
     jwt_expire_minutes: int = Field(default=1440, alias="JWT_EXPIRE_MINUTES")
     redis_url: str = Field(default="redis://127.0.0.1:6379/0", alias="REDIS_URL")
@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     producer_job_timeout_seconds: int = Field(default=180, alias="PRODUCER_JOB_TIMEOUT_SECONDS")
     dashscope_api_key: str = Field(default="", alias="DASHSCOPE_API_KEY")
     spark_api_password: str = Field(default="", alias="SPARK_API_PASSWORD")
+    spark_model: str = Field(default="4.0Ultra", alias="SPARK_MODEL")
+    spark_base_url: str = Field(default="https://spark-api-open.xf-yun.com/v1", alias="SPARK_BASE_URL")
+    spark_timeout_seconds: int = Field(default=90, alias="SPARK_TIMEOUT_SECONDS")
+    qwen_model: str = Field(default="qwen3.7-plus", alias="QWEN_MODEL")
+    qwen_base_url: str = Field(
+        default="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        alias="QWEN_BASE_URL",
+    )
+    qwen_timeout_seconds: int = Field(default=30, alias="QWEN_TIMEOUT_SECONDS")
     learnpilot_llm_provider: str = Field(default="spark", alias="LEARNPILOT_LLM_PROVIDER")
     learnpilot_llm_mode: str = Field(default="auto", alias="LEARNPILOT_LLM_MODE")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")

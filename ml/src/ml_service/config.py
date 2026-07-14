@@ -22,7 +22,7 @@ class LLMSettings:
     api_key: str | None = None
     model: str = "4.0Ultra"
     base_url: str = "https://spark-api-open.xf-yun.com/v1"
-    timeout_seconds: int = 30
+    timeout_seconds: int = 90
 
     @classmethod
     def from_env(cls) -> LLMSettings:
@@ -38,7 +38,7 @@ class LLMSettings:
             api_key = os.getenv("SPARK_API_PASSWORD")
             model = os.getenv("SPARK_MODEL", "4.0Ultra")
             base_url = os.getenv("SPARK_BASE_URL", "https://spark-api-open.xf-yun.com/v1")
-            timeout = os.getenv("SPARK_TIMEOUT_SECONDS", "30")
+            timeout = os.getenv("SPARK_TIMEOUT_SECONDS", "90")
         return cls(
             mode=os.getenv("LEARNPILOT_LLM_MODE", "auto").lower(),
             provider=provider,

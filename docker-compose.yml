@@ -41,6 +41,8 @@ services:
       LEARNPILOT_LLM_PROVIDER: ${LEARNPILOT_LLM_PROVIDER:-spark}
       SPARK_API_PASSWORD: ${SPARK_API_PASSWORD:-}
       SPARK_MODEL: ${SPARK_MODEL:-4.0Ultra}
+      SPARK_BASE_URL: ${SPARK_BASE_URL:-https://spark-api-open.xf-yun.com/v1}
+      SPARK_TIMEOUT_SECONDS: ${SPARK_TIMEOUT_SECONDS:-90}
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
     ports:
       - "8000:8000"
@@ -72,6 +74,8 @@ services:
       LEARNPILOT_LLM_PROVIDER: ${LEARNPILOT_LLM_PROVIDER:-spark}
       SPARK_API_PASSWORD: ${SPARK_API_PASSWORD:-}
       SPARK_MODEL: ${SPARK_MODEL:-4.0Ultra}
+      SPARK_BASE_URL: ${SPARK_BASE_URL:-https://spark-api-open.xf-yun.com/v1}
+      SPARK_TIMEOUT_SECONDS: ${SPARK_TIMEOUT_SECONDS:-90}
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
     ports:
       - "8001:8001"
@@ -100,6 +104,8 @@ services:
       LEARNPILOT_LLM_PROVIDER: ${LEARNPILOT_LLM_PROVIDER:-spark}
       SPARK_API_PASSWORD: ${SPARK_API_PASSWORD:-}
       SPARK_MODEL: ${SPARK_MODEL:-4.0Ultra}
+      SPARK_BASE_URL: ${SPARK_BASE_URL:-https://spark-api-open.xf-yun.com/v1}
+      SPARK_TIMEOUT_SECONDS: ${SPARK_TIMEOUT_SECONDS:-90}
 
   web:
     image: learnpilot-web:local

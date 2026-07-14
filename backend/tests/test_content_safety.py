@@ -9,7 +9,12 @@ from backend.app.services.content_safety import ContentSafetyService
 class ContentSafetyTest(unittest.TestCase):
     def test_production_configuration_fails_closed(self) -> None:
         with self.assertRaisesRegex(ValueError, "JWT_SECRET_KEY"):
-            Settings(APP_ENV="production", APP_DEBUG=False, CORS_ORIGINS="https://example.com").validate_runtime()
+            Settings(
+                APP_ENV="production",
+                APP_DEBUG=False,
+                CORS_ORIGINS="https://example.com",
+                JWT_SECRET_KEY="change-me-in-production",
+            ).validate_runtime()
         with self.assertRaisesRegex(ValueError, "CORS_ORIGINS"):
             Settings(
                 APP_ENV="production",
@@ -59,6 +64,34 @@ class ContentSafetyTest(unittest.TestCase):
 
         self.assertNotIn("teacher@example.com", str(result))
         self.assertNotIn("abcdefgh1234", str(result))
+
+    def test_online_profile_fields_are_normalized_for_database_storage(self) -> None:
+        adapter = LLMAdapter()
+        with patch.object(
+            adapter,
+            "_provider_json",
+            return_value={
+                "major": "软件工程",
+                "grade": "大二",
+                "course": "人工智能",
+                "goal": "掌握 CNN",
+                "weak_points": "卷积层、反向传播",
+                "preference": ["图解", "练习"],
+                "cognitive_style": ["循序渐进", "案例驱动"],
+                "knowledge_level": "入门",
+            },
+        ):
+            profile = adapter.profile_from_text("学习 CNN")
+
+        self.assertEqual(profile["weak_points"], ["卷积层", "反向传播"])
+        self.assertEqual(profile["preference"], "图解、练习")
+        self.assertEqual(profile["cognitive_style"], "循序渐进、案例驱动")
+
+    def test_provider_json_accepts_literal_newlines_from_small_models(self) -> None:
+        adapter = LLMAdapter()
+        result = adapter._decode_json_object('{"answer":"第一行\n第二行","hints":[]}')
+
+        self.assertEqual(result["answer"], "第一行\n第二行")
 
 
 if __name__ == "__main__":

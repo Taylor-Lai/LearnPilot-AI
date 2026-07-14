@@ -185,19 +185,10 @@ class MLAdapter:
         completed_resource_count: int,
         study_minutes: int,
     ) -> dict:
-        payload = {
-            "correct_count": correct_count,
-            "total_count": total_count,
-            "completed_resource_count": completed_resource_count,
-            "study_minutes": study_minutes,
-        }
-        try:
-            data = self.client.feedback(payload)
-            normalized = self._normalize_evaluation(data)
-            if normalized:
-                return normalized
-        except Exception as exc:
-            self.last_fallback_reason = str(exc)
+        # A score-only summary does not satisfy the contextual ML feedback
+        # contract. LearningService follows this baseline immediately with
+        # ``feedback_learning``, which sends the full student/event/resource
+        # payload and applies the model-driven profile update.
         return self._fallback_evaluate_mastery(correct_count, total_count, completed_resource_count, study_minutes)
 
     def _diagnostics_from_profile(self, profile: StudentProfile | None) -> dict[str, float]:

@@ -118,7 +118,7 @@ def decode_json_object(value: str) -> dict:
     end = text.rfind("}")
     if start < 0 or end < start:
         raise ValueError("model response does not contain a JSON object")
-    result = json.loads(text[start : end + 1])
+    result = json.loads(text[start : end + 1], strict=False)
     if not isinstance(result, dict):
         raise ValueError("model response JSON must be an object")
     return result

@@ -111,6 +111,7 @@ class TutorAskResponse(BaseModel):
     grounded: bool = False
     visual_aid: dict | None = None
     safety_meta: dict | None = None
+    generation_meta: dict | None = None
     refused: bool = False
     refusal_reason: str | None = None
 

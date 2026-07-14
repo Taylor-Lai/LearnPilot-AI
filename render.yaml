@@ -17,6 +17,8 @@ services:
         sync: false
       - key: SPARK_MODEL
         value: 4.0Ultra
+      - key: SPARK_TIMEOUT_SECONDS
+        value: 90
       - key: DASHSCOPE_API_KEY
         sync: false
 
@@ -40,6 +42,8 @@ services:
         value: sqlite:///./learnpilot.db
       - key: USE_ML_SERVICE
         value: true
+      - key: ML_SERVICE_TIMEOUT_SECONDS
+        value: 90
       - key: ML_SERVICE_URL
         fromService:
           type: web
@@ -53,6 +57,8 @@ services:
         sync: false
       - key: SPARK_MODEL
         value: 4.0Ultra
+      - key: SPARK_TIMEOUT_SECONDS
+        value: 90
       - key: DASHSCOPE_API_KEY
         sync: false
       - key: JWT_SECRET_KEY

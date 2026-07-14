@@ -33,15 +33,23 @@ class LLMAdapter:
         provider = self._setting_or_env("learnpilot_llm_provider", "LEARNPILOT_LLM_PROVIDER", "spark").lower()
         if provider == "qwen":
             api_key = self._setting_or_env("dashscope_api_key", "DASHSCOPE_API_KEY")
-            model = os.getenv("QWEN_MODEL", "qwen3.7-plus")
-            base_url = os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
-            timeout_seconds = int(os.getenv("QWEN_TIMEOUT_SECONDS", "30"))
+            model = self._setting_or_env("qwen_model", "QWEN_MODEL", "qwen3.7-plus")
+            base_url = self._setting_or_env(
+                "qwen_base_url",
+                "QWEN_BASE_URL",
+                "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            )
+            timeout_seconds = int(self._setting_or_env("qwen_timeout_seconds", "QWEN_TIMEOUT_SECONDS", "30"))
         else:
             provider = "spark"
             api_key = self._setting_or_env("spark_api_password", "SPARK_API_PASSWORD")
-            model = os.getenv("SPARK_MODEL", "4.0Ultra")
-            base_url = os.getenv("SPARK_BASE_URL", "https://spark-api-open.xf-yun.com/v1")
-            timeout_seconds = int(os.getenv("SPARK_TIMEOUT_SECONDS", "30"))
+            model = self._setting_or_env("spark_model", "SPARK_MODEL", "4.0Ultra")
+            base_url = self._setting_or_env(
+                "spark_base_url",
+                "SPARK_BASE_URL",
+                "https://spark-api-open.xf-yun.com/v1",
+            )
+            timeout_seconds = int(self._setting_or_env("spark_timeout_seconds", "SPARK_TIMEOUT_SECONDS", "90"))
         if not api_key:
             logger.warning("%s call skipped: API credential is not configured", provider)
             return None
@@ -86,7 +94,10 @@ class LLMAdapter:
         end = text.rfind("}")
         if start < 0 or end < start:
             raise json.JSONDecodeError("response does not contain a JSON object", text, 0)
-        result = json.loads(text[start : end + 1])
+        # Smaller OpenAI-compatible models sometimes emit literal newlines in
+        # JSON string values. ``strict=False`` accepts those control characters
+        # while all fields still pass through the content-safety sanitizer.
+        result = json.loads(text[start : end + 1], strict=False)
         if not isinstance(result, dict):
             raise TypeError("response JSON must be an object")
         return result
@@ -98,8 +109,25 @@ class LLMAdapter:
             f"weak_points, preference, cognitive_style, knowledge_level。学习需求：{text}"
         )
         if generated:
-            generated.setdefault("weak_points", [])
-            return generated
+            weak_points = generated.get("weak_points") or []
+            if isinstance(weak_points, str):
+                weak_points = [item.strip() for item in re.split(r"[,，、;；]", weak_points) if item.strip()]
+            elif not isinstance(weak_points, list):
+                weak_points = [str(weak_points)]
+            normalized = {
+                key: self._profile_text(generated.get(key))
+                for key in (
+                    "major",
+                    "grade",
+                    "course",
+                    "goal",
+                    "preference",
+                    "cognitive_style",
+                    "knowledge_level",
+                )
+            }
+            normalized["weak_points"] = [str(item) for item in weak_points if item]
+            return normalized
 
         weak_points = []
         for keyword in ["CNN", "卷积神经网络", "反向传播", "注意力机制", "Transformer", "机器学习"]:
@@ -119,6 +147,15 @@ class LLMAdapter:
             "cognitive_style": "循序渐进型",
             "knowledge_level": "入门到中级",
         }
+
+    def _profile_text(self, value: object) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, (list, tuple, set)):
+            return "、".join(str(item) for item in value if item)
+        if isinstance(value, dict):
+            return "、".join(f"{key}: {item}" for key, item in value.items() if item)
+        return str(value)
 
     def generate_resource(self, topic: str, resource_type: str, weak_points: list[str]) -> str:
         safe_input = self.safety.sanitize(
@@ -170,7 +207,18 @@ class LLMAdapter:
                 "hints": [str(item) for item in (generated.get("hints") or []) if item],
                 "next_action": str(generated.get("next_action") or "完成一个小练习并复盘。"),
             })
-            return safe_output.value
+            result = dict(safe_output.value)
+            provider = self._setting_or_env("learnpilot_llm_provider", "LEARNPILOT_LLM_PROVIDER", "spark")
+            result["generation_meta"] = {
+                "provider": provider,
+                "model": (
+                    self._setting_or_env("spark_model", "SPARK_MODEL", "4.0Ultra")
+                    if provider == "spark"
+                    else self._setting_or_env("qwen_model", "QWEN_MODEL", "qwen3.7-plus")
+                ),
+                "fallback_used": False,
+            }
+            return result
         return self._tutor_template_fallback(question, profile, history, evidence)
 
     def _build_tutor_prompt(
@@ -264,6 +312,7 @@ class LLMAdapter:
                 "用一个最小数值或代码例子验证",
             ],
             "next_action": f"围绕“{question}”完成一个 5 分钟小练习，并写下推理过程。",
+            "generation_meta": {"provider": "template", "fallback_used": True},
         }
 
     def _offline_tutor_explanation(self, question: str) -> str:
