@@ -13,7 +13,9 @@ from sqlalchemy.orm import Session
 from backend.app.models import CourseResource, KnowledgePoint, ResourceChunk
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[5]
+BACKEND_ROOT = Path(os.getenv("LEARNPILOT_BACKEND_ROOT", Path(__file__).resolve().parents[4])).resolve()
 SOURCE_RELATIVE_PATH = Path("data/external/course-materials/ai-for-beginners")
+BUNDLED_SOURCE_ROOT = BACKEND_ROOT / "data" / "course_materials" / "ai-for-beginners"
 UPSTREAM = "https://github.com/microsoft/AI-For-Beginners"
 
 PATH_TO_KNOWLEDGE_POINT = {
@@ -62,6 +64,7 @@ def ingest_ai_for_beginners(
         raise ValueError(f"course catalog is missing mapped knowledge points: {sorted(missing_points)}")
 
     documents = _discover_documents(lessons_root)
+    _validate_bundled_documents(source_root, receipt, documents)
     resources_created = 0
     chunks_written = 0
     for document in documents:
@@ -120,7 +123,7 @@ def resolve_course_source_root(source_root: Path | None = None) -> Path:
     override = os.getenv("LEARNPILOT_COURSE_SOURCE_DIR", "").strip()
     if override:
         return Path(override).expanduser().resolve()
-    candidates = [Path.cwd() / SOURCE_RELATIVE_PATH, REPOSITORY_ROOT / SOURCE_RELATIVE_PATH]
+    candidates = [BUNDLED_SOURCE_ROOT, Path.cwd() / SOURCE_RELATIVE_PATH, REPOSITORY_ROOT / SOURCE_RELATIVE_PATH]
     for candidate in candidates:
         if (candidate / ".learnpilot-source.json").is_file():
             return candidate.resolve()
@@ -144,6 +147,24 @@ def _load_receipt(source_root: Path) -> dict[str, Any]:
     if receipt.get("source_id") != "microsoft-ai-for-beginners" or not receipt.get("revision"):
         raise ValueError("invalid Microsoft AI for Beginners source receipt")
     return receipt
+
+
+def _validate_bundled_documents(source_root: Path, receipt: dict[str, Any], documents: list[Path]) -> None:
+    manifest = receipt.get("documents")
+    if receipt.get("bundle_type") != "curated-runtime-course-materials" or not isinstance(manifest, list):
+        return
+    expected = {str(item.get("path")): str(item.get("sha256")) for item in manifest}
+    actual_paths = {document.relative_to(source_root).as_posix() for document in documents}
+    if actual_paths != set(expected):
+        raise ValueError("bundled course document set does not match its receipt")
+    for document in documents:
+        relative = document.relative_to(source_root).as_posix()
+        if hashlib.sha256(document.read_bytes()).hexdigest() != expected[relative]:
+            raise ValueError(f"bundled course document hash mismatch: {relative}")
+    license_path = source_root / "LICENSE"
+    expected_license_hash = str(receipt.get("license_sha256") or "")
+    if not license_path.is_file() or hashlib.sha256(license_path.read_bytes()).hexdigest() != expected_license_hash:
+        raise ValueError("bundled course license hash mismatch")
 
 
 def _discover_documents(lessons_root: Path) -> list[Path]:

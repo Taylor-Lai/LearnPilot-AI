@@ -14,7 +14,8 @@ backend/
 │  ├─ models/              SQLAlchemy 实体
 │  ├─ schemas/             HTTP DTO
 │  └─ core/                配置、数据库和安全
-├─ data/knowledge_base/    可审查的课程目录种子
+├─ data/knowledge_base/    LearnPilot 课程目录与结构化知识种子
+├─ data/course_materials/  固定版本、带许可证与哈希的 37 份课程文档
 ├─ migrations/mysql/       MySQL 初始化迁移
 ├─ scripts/                数据库与知识库运维命令
 ├─ tests/                  业务、集成和接口契约测试

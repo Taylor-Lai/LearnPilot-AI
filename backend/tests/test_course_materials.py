@@ -12,7 +12,12 @@ from sqlalchemy.pool import StaticPool
 from backend.app.core.database import Base
 from backend.app.models import CourseResource, ResourceChunk
 from backend.app.services.course_catalog import seed_ai_course
-from backend.app.services.course_materials import ingest_ai_for_beginners
+from backend.app.services.course_materials import (
+    BUNDLED_SOURCE_ROOT,
+    course_materials_available,
+    ingest_ai_for_beginners,
+    resolve_course_source_root,
+)
 
 
 class CourseMaterialIngestionTests(unittest.TestCase):
@@ -59,6 +64,20 @@ class CourseMaterialIngestionTests(unittest.TestCase):
             self.assertEqual({item.resource_type for item in resources}, {"reading", "lab"})
             self.assertTrue(all(item.resource_metadata["content_license"] == "MIT" for item in resources))
             self.assertEqual(session.query(ResourceChunk).count(), second["chunks_written"])
+
+    def test_bundled_course_materials_are_complete_and_preferred(self) -> None:
+        self.assertEqual(resolve_course_source_root(), BUNDLED_SOURCE_ROOT)
+        self.assertTrue(course_materials_available())
+        with self.Session() as session:
+            catalog = seed_ai_course(session)
+            result = ingest_ai_for_beginners(session, int(catalog["course_id"]))
+            session.commit()
+
+            resources = session.query(CourseResource).filter(CourseResource.source.like("ai-for-beginners:%")).count()
+            chunks = session.query(ResourceChunk).count()
+        self.assertEqual(result["documents"], 37)
+        self.assertEqual(resources, 37)
+        self.assertEqual(chunks, 337)
 
 
 if __name__ == "__main__":

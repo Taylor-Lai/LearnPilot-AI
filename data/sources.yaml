@@ -25,6 +25,7 @@ sources:
     revision: 0b3a28c7c3d081a7de625e496f6be6461188fe93
     local_path: data/external/course-materials/ai-for-beginners
     distribution: ignored
+    bundle_distribution: curated-subset
     sync_strategy: github-files
     include_extensions:
       - .md
@@ -50,11 +51,13 @@ sources:
       - data/
       - examples/
     ingestion:
-      mode: attributed-adaptation
-      output: backend/data/knowledge_base
+      mode: attributed-curated-copy
+      output: backend/data/course_materials/ai-for-beginners
+      document_count: 37
+      document_manifest_sha256: 784d808f965b642fb5875857f4d227ab2c3453ae46186a392fec567ad4356acd
       requirements:
         - Preserve the upstream license and source revision in derived metadata.
-        - Map selected material into the LearnPilot course schema before publication.
+        - Preserve per-file hashes and map selected documents into the LearnPilot course schema.
         - Run content, citation, and course-catalog tests before release.
 
   - id: d2l-zh

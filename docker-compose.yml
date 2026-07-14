@@ -97,10 +97,7 @@ services:
       ML_SERVICE_URL: http://ml-service:8000
       USE_ML_SERVICE: "true"
       ML_SERVICE_TIMEOUT_SECONDS: ${ML_SERVICE_TIMEOUT_SECONDS:-90}
-      LEARNPILOT_COURSE_SOURCE_DIR: /app/data/external/course-materials/ai-for-beginners
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
-    volumes:
-      - ./data/external/course-materials/ai-for-beginners:/app/data/external/course-materials/ai-for-beginners:ro
     ports:
       - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PUBLISHED_PORT:-8001}:8001"
     expose:

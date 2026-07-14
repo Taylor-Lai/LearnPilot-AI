@@ -33,7 +33,8 @@ LearnPilot-AI/
 │  │  ├─ models/                持久化实体
 │  │  ├─ schemas/               DTO
 │  │  └─ core/                  配置、安全和数据库
-│  ├─ data/knowledge_base/      可审查的课程目录种子
+│  ├─ data/knowledge_base/      LearnPilot 课程目录与结构化知识种子
+│  ├─ data/course_materials/    可离线校验并随服务分发的精选课程文档
 │  ├─ migrations/mysql/         数据库初始化迁移
 │  └─ tests/
 ├─ web/                         Vue 3 前端
@@ -55,7 +56,7 @@ LearnPilot-AI/
 │  └─ tests/
 ├─ data/
 │  ├─ sources.yaml              外部来源、许可证、版本与导入策略
-│  └─ external/                 外部数据与课程原始材料（不进入 Git）
+│  └─ external/                 完整外部数据与课程原始材料（不进入 Git）
 ├─ tools/                       仓库级来源校验与同步工具
 ├─ docs/                        仓库级文档
 ├─ Dockerfile                   多阶段镜像

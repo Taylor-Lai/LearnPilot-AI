@@ -1,0 +1,198 @@
+{
+  "schema_version": "1.0",
+  "source_id": "microsoft-ai-for-beginners",
+  "upstream": "https://github.com/microsoft/AI-For-Beginners.git",
+  "revision": "0b3a28c7c3d081a7de625e496f6be6461188fe93",
+  "license": "MIT",
+  "bundle_type": "curated-runtime-course-materials",
+  "document_count": 37,
+  "license_sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+  "documents": [
+    {
+      "path": "translations/zh-CN/lessons/1-Intro/README.md",
+      "sha256": "b8d9d7feda15bd4e2691a44808a35aff65a7397d7af0cea2536cb1d6247568f9",
+      "knowledge_point": "人工智能概述"
+    },
+    {
+      "path": "translations/zh-CN/lessons/2-Symbolic/README.md",
+      "sha256": "0ffa87a80413bcb371d49d7b8501198ba8d22c157114aba259a834ec43f9ffa5",
+      "knowledge_point": "知识图谱"
+    },
+    {
+      "path": "translations/zh-CN/lessons/3-NeuralNetworks/03-Perceptron/lab/README.md",
+      "sha256": "eeca646b85c4ccbb632322a99293820efb5cb6969501154729f4ecaeec378ac4",
+      "knowledge_point": "感知机"
+    },
+    {
+      "path": "translations/zh-CN/lessons/3-NeuralNetworks/03-Perceptron/README.md",
+      "sha256": "b3686c13a692de9a3913180edb509d99dafb615ccc02b2dabd910679ba8ac51f",
+      "knowledge_point": "感知机"
+    },
+    {
+      "path": "translations/zh-CN/lessons/3-NeuralNetworks/04-OwnFramework/lab/README.md",
+      "sha256": "25fa0692824e7c866f3f6f8abd5be7fc8a741f0b604c3dec1f9ba3c725d340a2",
+      "knowledge_point": "反向传播"
+    },
+    {
+      "path": "translations/zh-CN/lessons/3-NeuralNetworks/04-OwnFramework/README.md",
+      "sha256": "8b77560ea63ad001c7148100eed8f210bb4ed4fbe430d5f528798dd3c2e62239",
+      "knowledge_point": "反向传播"
+    },
+    {
+      "path": "translations/zh-CN/lessons/3-NeuralNetworks/05-Frameworks/lab/README.md",
+      "sha256": "773acea2f4dc3009f31524d500cf932f56acde3772d98e96b8e22a9ca85d279c",
+      "knowledge_point": "多层神经网络"
+    },
+    {
+      "path": "translations/zh-CN/lessons/3-NeuralNetworks/05-Frameworks/README.md",
+      "sha256": "fcb67708a5773171ada87b95a6d810cdbec28a18a47c59f26ad9e3ff4d1abd8b",
+      "knowledge_point": "多层神经网络"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/06-IntroCV/lab/README.md",
+      "sha256": "e92ffceaebb4d66a6dec69ce432a40d10aa95c6d073d030710b73b73f0a3b734",
+      "knowledge_point": "计算机视觉实验"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/06-IntroCV/README.md",
+      "sha256": "fa90ec8503b4ee2086e2913e2d1055ce0789988b2c12139954a62c37eb5723e9",
+      "knowledge_point": "计算机视觉实验"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/07-ConvNets/lab/README.md",
+      "sha256": "4cd41006878e025fb318d2cae16b2fe3ade72ff019737a310a4ff0831fcfa2ee",
+      "knowledge_point": "CNN"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/07-ConvNets/README.md",
+      "sha256": "1e3af208b253a70e2a35186adac81d8f28bb986d00604a03d2831f197303563e",
+      "knowledge_point": "CNN"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/08-TransferLearning/lab/README.md",
+      "sha256": "6d853d80dd133ad6fa98ca41c12bb87be3c8c79dbbd21c76f7e9b9646ff4e5cf",
+      "knowledge_point": "迁移学习"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/08-TransferLearning/README.md",
+      "sha256": "d3006a9d81dd9050d38bfda5d1120b2309fe66e26ae30b3d8718cf43ca019021",
+      "knowledge_point": "迁移学习"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/09-Autoencoders/README.md",
+      "sha256": "01a0d3c628e0a97fe9010929ac057d6fd9c21efac20e3c5380df89fc4c660c7b",
+      "knowledge_point": "深度网络正则化"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/10-GANs/README.md",
+      "sha256": "e5d800a967d63b80b170704a57a93f5e6b5c052d2899c6c56176a1ba9002ce39",
+      "knowledge_point": "计算机视觉实验"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/11-ObjectDetection/lab/README.md",
+      "sha256": "4e530cbe2e79199e109c1276533bbb7bb267fdb6b7b79dc490a1fdbd787659f1",
+      "knowledge_point": "计算机视觉实验"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/11-ObjectDetection/README.md",
+      "sha256": "326f22fb10331ac9da314f0c5ec3d62f054275c9a806d3a3a06879d096ba8564",
+      "knowledge_point": "计算机视觉实验"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/12-Segmentation/lab/README.md",
+      "sha256": "122682e07b010d15c2ac0b67c9fa40a8ce8113275d7a1c2a3c1884fc3b419ef2",
+      "knowledge_point": "计算机视觉实验"
+    },
+    {
+      "path": "translations/zh-CN/lessons/4-ComputerVision/12-Segmentation/README.md",
+      "sha256": "49e9bfc85f71897aa00afe7e88fdd5dc45e9ffd69ec23bc5358d44b1c571234e",
+      "knowledge_point": "计算机视觉实验"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/13-TextRep/README.md",
+      "sha256": "227548deca810c5b8fe948435c3f56ab804ab7c89bc28e7db1087fc81f84acb1",
+      "knowledge_point": "文本表示"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/14-Embeddings/README.md",
+      "sha256": "a50a0f3358a45fe44abaec10b2b21b2a60112440ada580a1c63768968fbe4c96",
+      "knowledge_point": "文本表示"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/15-LanguageModeling/lab/README.md",
+      "sha256": "008c2e1e28002c1c8bb31ad432ae2c741ec50d41f763cdf91af631b56865b948",
+      "knowledge_point": "文本表示"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/15-LanguageModeling/README.md",
+      "sha256": "a579268f5698fac5a1ce3b789a1eba2bbd5b3c6db45c845d298f39759cd73f07",
+      "knowledge_point": "文本表示"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/16-RNN/README.md",
+      "sha256": "7578d3eadc19aa4374f90130d3bf34cc9c53eb3c3a2c7a5f4affeb3133160be9",
+      "knowledge_point": "注意力机制"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/17-GenerativeNetworks/lab/README.md",
+      "sha256": "b2bd9c87926cb09dddef1854eaf46bbd8906b0feb1a03640f1759e34c15c9674",
+      "knowledge_point": "大模型与RAG"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/17-GenerativeNetworks/README.md",
+      "sha256": "997decfdaacf7f2a21a1976f0aaaebedb0c4016f6c8ede14a7109dc3d8f340a1",
+      "knowledge_point": "大模型与RAG"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/18-Transformers/README.md",
+      "sha256": "f17f3eacc2b0b78a64f4f3c9cc492e613d3f7ed6d6f71578cd08077bdd4ac3bf",
+      "knowledge_point": "Transformer"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/19-NER/lab/README.md",
+      "sha256": "21cc27d13f7f29bb5f36aef3500ceaf9d78c1dbb91ec22eef7814db0c0d1a93f",
+      "knowledge_point": "文本表示"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/19-NER/README.md",
+      "sha256": "5e3697fc49c1ff6f74d214d569eb753eb74fd119d3c758f458782cca6d8b68ab",
+      "knowledge_point": "文本表示"
+    },
+    {
+      "path": "translations/zh-CN/lessons/5-NLP/20-LangModels/README.md",
+      "sha256": "a037aabfbbd6418e3056a20361420f80d7d547e2c5182f4e2e46237911ae0212",
+      "knowledge_point": "大模型与RAG"
+    },
+    {
+      "path": "translations/zh-CN/lessons/6-Other/21-GeneticAlgorithms/README.md",
+      "sha256": "641f81a570bee45fea467e1dbf778785f94679c2368d1aa2e533ba6c4ce3b5ec",
+      "knowledge_point": "机器学习基础"
+    },
+    {
+      "path": "translations/zh-CN/lessons/6-Other/22-DeepRL/lab/README.md",
+      "sha256": "832451cc16c72d80951420423e461b1e6bfcb6c17d4be46c27e60b8d6fcc11ef",
+      "knowledge_point": "智能体与环境"
+    },
+    {
+      "path": "translations/zh-CN/lessons/6-Other/22-DeepRL/README.md",
+      "sha256": "00558bd9f53079395548197972706d75149edbbb5e4d89440009ec5672928fb3",
+      "knowledge_point": "智能体与环境"
+    },
+    {
+      "path": "translations/zh-CN/lessons/6-Other/23-MultiagentSystems/README.md",
+      "sha256": "ef005a896479dcbffff0fa2d4a1b07307b598610c221f7dc219108bd3e81d4ea",
+      "knowledge_point": "智能体与环境"
+    },
+    {
+      "path": "translations/zh-CN/lessons/7-Ethics/README.md",
+      "sha256": "93c363fab18b1f94962b66d51efad5e1b82a1d034ab001b403deeacd5551f54d",
+      "knowledge_point": "人工智能安全与伦理"
+    },
+    {
+      "path": "translations/zh-CN/lessons/X-Extras/X1-MultiModal/README.md",
+      "sha256": "c1c6bcd6cd4bf1ae09460b1a5950a4c92ea554a270b3095a345f0589ea91322a",
+      "knowledge_point": "人工智能综合项目"
+    }
+  ],
+  "document_manifest_sha256": "784d808f965b642fb5875857f4d227ab2c3453ae46186a392fec567ad4356acd"
+}

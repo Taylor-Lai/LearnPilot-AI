@@ -91,22 +91,23 @@ learnpilot-ml-train
 
 OULAD 不提供人工智能课程内容，项目只用它验证行为建模和推荐排序。其点击量被明确建模为“参与度代理”而非知识掌握度；完整数据边界见 [ml/data/README.md](ml/data/README.md)。
 
-### 外部课程材料
+### 课程材料来源与离线包
 
-所有外部输入都登记在 [data/sources.yaml](data/sources.yaml)，原始文件统一放在 `data/external/` 并由 Git 和 Docker 忽略。验证本地来源：
+所有外部输入都登记在 [data/sources.yaml](data/sources.yaml)。仓库已经内置经审查的 37 份 Microsoft AI for Beginners 中文课程与实验文档，干净克隆及 Docker 构建不需要 `data/external/` 或下载课程仓库。离线验证内置课程包：
 
 ```powershell
-python tools/manage_sources.py verify
+python tools/build_course_bundle.py verify
 ```
 
-同步固定版本的 Microsoft AI for Beginners：
+需要更新固定上游版本时，才同步被 Git 与 Docker 忽略的完整来源并重建精选包：
 
 ```powershell
 python tools/manage_sources.py sync microsoft-ai-for-beginners --proxy http://127.0.0.1:7897
-python backend/scripts/seed_ai_course.py
+python tools/build_course_bundle.py build
+python tools/build_course_bundle.py verify
 ```
 
-`--proxy` 为可选参数。同步器只处理清单中声明为 `ignored` 的课程来源，按固定提交逐文件下载文本、Notebook、代码和测验，并使用 Git blob SHA 校验；课程播种脚本随后将 37 份中文课程/实验文档映射为带来源元数据的资源和 RAG 分块。D2L 与 MIT OCW 在清单中标记为 `link-only`，不会混入 MIT 课程库。
+`--proxy` 为可选参数。精选包保留上游 MIT License、固定提交、逐文件 SHA-256 和知识点映射；后端启动时校验后将其导入为 37 条带来源元数据的资源和 337 个 RAG 分块。D2L 与 MIT OCW 仅作为链接参考，不会混入 MIT 课程库。
 
 ### 启动服务
 
