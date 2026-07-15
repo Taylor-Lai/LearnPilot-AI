@@ -1,122 +1,82 @@
-# LearnPilot ML
+# LearnPilot ML Service
 
-LearnPilot 的机器学习服务，实现 A3 赛题中的学习诊断、学生画像、资源排序、学习路径、多形态 RAG 内容生成、多轮辅导和学习效果反馈。
+ML Service 提供无状态算法能力，覆盖学习诊断、动态画像、个性化排序、知识图谱路径、RAG 资源生成、多轮辅导、反馈闭环、训练和离线评估。业务身份、课程持久化和任务管理由 Backend 负责。
 
-## 分层
+## 代码结构
 
 ```text
 ml/
 ├─ src/ml_service/
-│  ├─ api/                 FastAPI 应用和请求契约
-│  ├─ application/         学习闭环、Agent 编排和多形态资源构建
-│  ├─ domain/              领域模型和诊断逻辑
-│  ├─ infrastructure/      LightGBM、RAG、内容安全和大模型提供方适配器
-│  ├─ datasets/            统一数据契约、OULAD 预处理、内置资源和合成数据
+│  ├─ api/                 FastAPI 与请求契约
+│  ├─ application/         学习闭环和 Agent 编排
+│  ├─ domain/              领域模型与诊断逻辑
+│  ├─ infrastructure/      排序、RAG、安全和 LLM
+│  ├─ datasets/            OULAD、合成数据和统一契约
 │  ├─ training/            防泄漏训练工作流
-│  └─ evaluation/          离线评估与报告
-├─ data/benchmarks/        小型、可审查的评估基准
-├─ docs/                   ML 设计与赛题追踪文档
-├─ tests/                  单元、API 和训练测试
-└─ pyproject.toml          包元数据、依赖和命令入口
+│  └─ evaluation/          离线指标与评估报告
+├─ data/benchmarks/        可审查评估基准
+├─ models/ranker/          已验证部署模型
+├─ tests/                  单元和闭环测试
+└─ pyproject.toml          包、依赖和命令定义
 ```
 
-生成数据、重新训练产物和报告不会提交：
+运行时生成的 `data/generated/`、`data/processed/`、`artifacts/` 和 `reports/` 均被 Git 忽略。部署模型采用 LightGBM 文本格式，元数据记录数据语义、分组验证指标、特征版本与 SHA-256。
 
-```text
-ml/data/generated/
-ml/artifacts/
-ml/reports/
-```
-
-正式部署模型位于 `models/ranker/`，采用可审查的 LightGBM 文本格式；`ranker_meta.json` 记录 OULAD 数据语义、分组验证指标、特征版本和模型 SHA-256。服务启动时会校验哈希，校验失败则拒绝加载并安全降级到规则排序。
-
-## 工作流
+## 常用命令
 
 ```powershell
 conda activate learnpilot-ai
+learnpilot-ml-api
 learnpilot-ml-generate
 learnpilot-ml-train
 learnpilot-ml-evaluate
 learnpilot-ml-demo
 ```
 
-训练流程固定随机种子，按学生划分验证集，并在构造特征时排除目标交互，避免行为标签泄漏。
-内置评测命令和 `GET /evaluate` 始终强制使用离线模板，即使 `.env` 已配置真实 API Key，也不会从评测接口发起付费模型请求。
+API 默认地址：<http://127.0.0.1:8000/docs>。
 
-需要真实高等教育行为数据时，从 OULAD 官方页面下载 ZIP 后执行：
+| 接口 | 作用 |
+| --- | --- |
+| `GET /health` | 服务与排序模型状态 |
+| `POST /assessment/diagnose` | 原始作答诊断 |
+| `POST /student/update-profile` | 动态更新学生画像 |
+| `POST /recommend` | 推荐、路径与学习卡闭环 |
+| `POST /path` | 基于知识图谱规划路径 |
+| `POST /generate` | 生成带证据和审核轨迹的多形态资源 |
+| `POST /tutor/ask` | 多轮、有据的智能辅导 |
+| `POST /feedback` | 根据行为和评测更新闭环 |
 
-```powershell
-learnpilot-ml-prepare-oulad data/external/datasets/oulad/anonymisedData.zip ml/data/processed/oulad
-$env:LEARNPILOT_TRAINING_DATA_DIR="ml/data/processed/oulad"
-learnpilot-ml-train
-```
+## 模型与数据边界
 
-训练命令写入 `ml/artifacts/`，不会自动替换正式部署模型。验证候选模型时可显式设置 `LEARNPILOT_RANKER_MODEL_DIR=ml/artifacts`；通过指标、来源和哈希复核后，再将其发布为 `models/ranker/` 中的部署版本。
+- 默认正式模型基于 OULAD 构建参与度代理排序；点击量不能解释为知识掌握度。
+- 训练按学生划分验证集，并排除目标事件，避免行为标签泄漏。
+- 训练产物先写入 `ml/artifacts/`，不会自动覆盖部署模型。
+- 课程内容来自项目人工智能知识库，OULAD 不提供人工智能教材内容。
+- 生成内容必须引用实际召回切片，并经过教学完整性、引用、安全、隐私和多形态审核。
 
-预处理器不输出受保护人口统计属性，并对学生标识做稳定散列。OULAD 点击数据只作为参与度代理，不能解释为掌握度；详见 [data/README.md](data/README.md)。
+详细数据语义和准备命令见[ML 数据说明](data/README.md)，算法设计见[ML 服务设计](../docs/ml-design.md)。
 
-当前部署模型使用 76,200 条按学生分组构造的训练样本，验证 AUC 为 0.8248；该指标只衡量参与度代理排序，不代表课程知识掌握预测准确率。
-
-## 启动 API
-
-```powershell
-learnpilot-ml-api
-```
-
-默认地址：`http://127.0.0.1:8000/docs`。
-
-关键接口：
-
-| 方法 | 路径 | 作用 |
-| --- | --- | --- |
-| GET | `/health` | 服务和排序模型状态 |
-| POST | `/diagnose` | 聚合知识点分数诊断 |
-| POST | `/assessment/diagnose` | 原始题目作答诊断 |
-| POST | `/recommend` | 画像、推荐、路径和学习卡闭环 |
-| POST | `/path` | 基于知识图谱规划路径 |
-| POST | `/generate` | 生成带 RAG 证据、审核轨迹和多形态资源包的学习内容 |
-| POST | `/feedback` | 根据学习反馈更新闭环 |
-| POST | `/student/update-profile` | 更新学生画像 |
-| POST | `/tutor/ask` | 多轮、有据、分层智能辅导 |
-
-## 大模型提供方
-
-离线测试使用：
+## 大模型模式
 
 ```text
-LEARNPILOT_LLM_MODE=template
+LEARNPILOT_LLM_MODE=template   # 离线测试，不调用外部模型
+LEARNPILOT_LLM_MODE=auto       # 使用配置的提供方并保留安全降级
 ```
 
-正式参赛在线能力默认使用科大讯飞星火。在根目录 `.env` 配置 `SPARK_API_PASSWORD` 后执行：
+正式联调默认使用科大讯飞星火：
 
 ```powershell
 learnpilot-ml-spark-check
 ```
 
-Qwen 仅作为可选兼容提供方；将 `LEARNPILOT_LLM_PROVIDER` 设为 `qwen`，配置 `DASHSCOPE_API_KEY` 后执行：
+自动化评估固定使用离线模板，即使 `.env` 存在 API Key 也不会产生在线调用。
+
+## 验证
 
 ```powershell
-learnpilot-ml-qwen-check
+python -m pytest ml/tests -q
+python -m ruff check ml/src ml/tests
+learnpilot-ml-evaluate
 ```
 
-生成内容必须引用实际召回的资源切片；引用不合法时会被过滤。每组内容会经过教学完整性、引用、安全、隐私和多形态覆盖审核，不通过时执行确定性修复并复审。
-
-每张学习卡的 `resource_bundle` 提供七种可直接渲染或继续导出的资源：
-
-- Markdown 讲义
-- 可下载 PPTX 及逐页结构
-- SVG 与 Mermaid 思维导图
-- 带答案和评分规则的题库
-- PDF/DOCX、视频分镜、字幕 SRT 和无障碍文本稿
-- 实验指导书
-- 项目任务书
-
-课程内容、学生问题和对话历史均按不可信输入处理。系统会识别提示注入，并脱敏手机号、邮箱、证件号、API Key 和访问令牌。
-
-## 测试
-
-```powershell
-python -m unittest discover -s ml/tests -v
-```
-
-设计细节见 [docs/design.md](docs/design.md)，赛题覆盖关系见 [docs/requirements-traceability.md](docs/requirements-traceability.md)。
+赛题能力与实现入口的对应关系见[ML 技术追踪矩阵](../docs/ml-requirements-traceability.md)。

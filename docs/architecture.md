@@ -36,12 +36,14 @@ LearnPilot-AI/
 │  ├─ data/knowledge_base/      LearnPilot 课程目录与结构化知识种子
 │  ├─ data/course_materials/    可离线校验并随服务分发的精选课程文档
 │  ├─ migrations/mysql/         数据库初始化迁移
-│  └─ tests/
+│  ├─ tests/                    后端测试
+│  └─ README.md                 后端开发入口
 ├─ web/                         Vue 3 前端
 │  ├─ src/api/                  Backend 接口适配
 │  ├─ src/components/           通用组件
 │  ├─ src/views/                学生端与管理端页面
-│  └─ src/router/               路由与权限守卫
+│  ├─ src/router/               路由与权限守卫
+│  └─ README.md                 前端开发入口
 ├─ ml/                          ML 可安装包
 │  ├─ src/ml_service/
 │  │  ├─ api/                   FastAPI 与请求契约
@@ -53,12 +55,18 @@ LearnPilot-AI/
 │  │  └─ evaluation/            离线评估
 │  ├─ data/benchmarks/          小型评估基准
 │  ├─ data/processed/           统一训练数据（不进入 Git）
-│  └─ tests/
+│  ├─ tests/                    ML 测试
+│  └─ README.md                 ML 开发入口
 ├─ data/
 │  ├─ sources.yaml              外部来源、许可证、版本与导入策略
 │  └─ external/                 完整外部数据与课程原始材料（不进入 Git）
 ├─ tools/                       仓库级来源校验与同步工具
-├─ docs/                        仓库级文档
+├─ docs/                        跨模块文档与统一文档索引
+│  ├─ README.md                 文档导航与归档规则
+│  ├─ architecture.md           工程架构
+│  ├─ api-reference.md          统一 API 参考
+│  ├─ ml-design.md              ML 服务设计
+│  └─ *requirements*.md         赛题与技术追踪矩阵
 ├─ Dockerfile                   多阶段镜像
 ├─ docker-compose.yml           本地完整服务栈
 ├─ environment.yml              锁定的项目环境

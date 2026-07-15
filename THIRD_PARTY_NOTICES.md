@@ -1,4 +1,4 @@
-# Third-party notices
+# 第三方许可证与来源
 
 LearnPilot AI 自主开发代码采用仓库根目录中的 [MIT License](LICENSE)。本文件只记录项目在数据、课程设计和依赖层面的外部来源；外部材料仍由各自许可证约束，LearnPilot AI 的 MIT License 不会覆盖或重新许可它们。
 

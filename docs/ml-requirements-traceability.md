@@ -1,6 +1,6 @@
-# A3 赛题 ML 技术追踪矩阵
+# ML 技术追踪矩阵
 
-本文件记录 ML 服务的技术实现证据。全项目的官方要求、完成状态与最终验收标准以 [`docs/competition-requirements.md`](../../docs/competition-requirements.md) 为准。
+本文件记录 ML 服务的技术实现证据。全项目的官方要求、完成状态与最终验收标准以 [赛题要求与验收矩阵](competition-requirements.md) 为准。
 
 | 赛题能力 | ML 实现 | 可验证入口 |
 | --- | --- | --- |

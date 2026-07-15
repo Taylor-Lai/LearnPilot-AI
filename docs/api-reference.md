@@ -1,10 +1,10 @@
-# API 文档
+# API 参考
 
 启动后访问 Swagger：
 
 `http://127.0.0.1:8001/docs`
 
-## ML Compatibility APIs
+## ML 兼容接口
 
 - `GET /api/ml/profile/current?userId=1` returns the latest profile or a default profile.
 - `GET /api/ml/profile/questions` returns the six builder question definitions.
@@ -14,7 +14,7 @@
 
 When an Authorization Bearer token is supplied, its user ID takes priority. Without authentication or `userId`, demo endpoints default to user ID `1`.
 
-## Personalized Profile And Path
+## 个性化画像与路径
 
 Profile endpoints:
 
@@ -52,7 +52,7 @@ Document recommendations use:
 
 `GET /resources/{id}/view` returns the complete resource detail and Markdown content while incrementing the view count.
 
-## Multi-Agent Producer
+## 多智能体资源生成
 
 `POST /producer/task`
 
@@ -125,7 +125,7 @@ Additional endpoints:
 
 This endpoint performs static parsing and returns simulated output. It never executes submitted code.
 
-## Resource Center
+## 资源中心
 
 `GET /resources`
 
@@ -146,7 +146,7 @@ Increments and returns the latest view count.
 
 Increments and returns the latest like count.
 
-## Profile Builder
+## 对话式画像
 
 `POST /profile-builder/start`
 
