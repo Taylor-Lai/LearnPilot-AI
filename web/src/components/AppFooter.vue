@@ -141,24 +141,28 @@ const cards = [
 
 <style scoped>
 .feature-section {
+  position: relative;
+  z-index: 20;
   width: 100%;
-  padding: 48px 24px 64px;
-  background: #ffffff;
+  margin-top: -220px;
+  padding: 0 20px 60px;
   box-sizing: border-box;
 }
 
 .feature-wrapper {
   position: relative;
   overflow: hidden;
-  width: min(100%, 1200px);
+  width: min(98%, 1680px);
   margin: 0 auto;
   padding: 32px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.95);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid #e5e7eb;
-  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 20px 50px rgba(15, 23, 42, 0.08),
+    0 8px 20px rgba(15, 23, 42, 0.05);
 }
 
 .feature-wrapper::before {
@@ -200,13 +204,14 @@ const cards = [
 
 .feature-card {
   position: relative;
-  min-height: 220px;
-  height: 100%;
+  height: 220px;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 20px;
   text-decoration: none;
   border: 1px solid rgba(255,255,255,.75);
-  transition: transform .35s ease, box-shadow .35s ease;
+  transition:
+    transform .35s ease,
+    box-shadow .35s ease;
   cursor: pointer;
 }
 
@@ -317,37 +322,43 @@ const cards = [
   }
 }
 
-/* ==============================
-   响应式布局
-=============================== */
-@media (max-width: 1199px) {
+/* Responsive layout */
+@media (max-width: 1440px) {
+  .feature-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+@media (max-width: 980px) {
   .feature-section {
-    padding: 40px 24px 56px;
+    margin-top: -160px;
   }
 
   .feature-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 640px) {
   .feature-section {
-    padding: 32px 16px 48px;
+    margin-top: -100px;
+    padding-inline: 12px;
   }
 
   .feature-wrapper {
-    padding: 20px;
-    border-radius: 18px;
+    padding: 16px;
+    border-radius: 20px;
   }
 
   .feature-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 
   .feature-card {
-    min-height: 200px;
+    height: 210px;
   }
 }
 </style>

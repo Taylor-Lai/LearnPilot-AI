@@ -597,10 +597,10 @@ onBeforeUnmount(() => {
 <style scoped>
 .hero {
   position: relative;
-  width: 100%;
-  min-height: clamp(420px, 72vh, 680px);
-  background: #263149;
   overflow: hidden;
+  width: 100%;
+  min-height: calc(100vh - 160px);
+  background: #263149;
 }
 
 .hero-canvas {
@@ -614,17 +614,17 @@ onBeforeUnmount(() => {
 
 .hero-content {
   position: relative;
-  z-index: 1;
-  width: min(100%, 860px);
-  min-height: clamp(420px, 72vh, 680px);
+  z-index: 2;
+  width: min(100%, 760px);
+  min-height: calc(100vh - 160px);
   margin: 0 auto;
-  padding: 48px 24px 56px;
+  padding: 40px 20px 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  box-sizing: border-box;
+  transform: translateY(-35px);
 }
 
 .eyebrow {
@@ -639,29 +639,25 @@ onBeforeUnmount(() => {
 h1 {
   margin: 0 0 18px;
   color: #ffffff;
-  font-size: clamp(40px, 7vw, 88px);
+  font-size: clamp(56px, 8vw, 96px);
   font-weight: 700;
-  line-height: 1.08;
+  line-height: 1;
   letter-spacing: 0.02em;
-  word-break: break-word;
 }
 
 .description {
-  max-width: 620px;
+  max-width: 560px;
   color: rgba(226, 235, 248, 0.78);
-  font-size: clamp(14px, 2vw, 16px);
-  line-height: 1.85;
+  font-size: 15px;
+  line-height: 1.9;
   text-align: center;
 }
 
 .actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
   gap: 14px;
-  margin-top: 30px;
-  width: 100%;
+  margin-top: 34px;
 }
 
 .primary-action,
@@ -676,7 +672,10 @@ h1 {
   font-size: 14px;
   font-weight: 700;
   text-decoration: none;
-  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease,
+    border-color 0.25s ease;
 }
 
 .primary-action {
@@ -702,23 +701,34 @@ h1 {
 }
 
 @media (max-width: 768px) {
-  .hero,
-  .hero-content {
-    min-height: auto;
+  .hero {
+    min-height: calc(100vh - 120px);
   }
 
   .hero-content {
-    padding: 36px 16px 40px;
+    min-height: calc(100vh - 120px);
+    padding: 40px 20px 120px;
+    transform: translateY(-40px);
+  }
+
+  h1 {
+    font-size: 58px;
+  }
+
+  .description {
+    font-size: 14px;
+    line-height: 1.8;
   }
 
   .actions {
     flex-direction: column;
+    width: 100%;
   }
 
   .primary-action,
   .secondary-action {
     width: 100%;
-    max-width: 280px;
+    max-width: 260px;
   }
 }
 </style>

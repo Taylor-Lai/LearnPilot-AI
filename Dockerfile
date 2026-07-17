@@ -63,7 +63,8 @@ RUN --mount=type=cache,id=learnpilot-ml-pip-v2,target=/root/.cache/pip,sharing=l
             echo "Retrying $requirement ($attempt/10)" >&2; \
         done; \
     done; \
-    pip install /app/ml
+    # Do not reuse partially downloaded transitive wheels from interrupted builds.
+    pip install --no-cache-dir /app/ml
 
 ENV LEARNPILOT_ML_ROOT=/app/ml
 ENV LEARNPILOT_RANKER_MODEL_DIR=/app/ml/models/ranker

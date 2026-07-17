@@ -1,16 +1,14 @@
 <template>
   <div class="page">
-    <Header />
+    <AppHeader />
     <SpiralHero />
-    <HomeDashboard />
-    <Bottom />
+    <AppFooter />
   </div>
 </template>
 
 <script setup>
-import Bottom from '../components/AppFooter.vue'
-import Header from '../components/AppHeader.vue'
-import HomeDashboard from '../components/HomeDashboard.vue'
+import AppFooter from '../components/AppFooter.vue'
+import AppHeader from '../components/AppHeader.vue'
 import SpiralHero from '../components/SpiralHero.vue'
 </script>
 
