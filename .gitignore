@@ -10,6 +10,9 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.hypothesis/
+.tox/
+.nox/
 .coverage
 coverage.xml
 htmlcov/
@@ -17,6 +20,14 @@ build/
 dist/
 node_modules/
 .npm-cache/
+.vite/
+.eslintcache
+*.tsbuildinfo
+
+# Local AI tooling and review workspaces
+.agents/
+.codex/
+.codex_review*/
 
 # Local environments
 .venv/

@@ -2,13 +2,13 @@
   <div class="page">
     <AppHeader />
     <SpiralHero />
-    <AppFooter />
+    <HomeFeatureGrid />
   </div>
 </template>
 
 <script setup>
-import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
+import HomeFeatureGrid from '../components/HomeFeatureGrid.vue'
 import SpiralHero from '../components/SpiralHero.vue'
 </script>
 

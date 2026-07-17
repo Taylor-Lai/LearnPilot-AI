@@ -35,6 +35,7 @@ Backend :8001 ─────► MySQL
 - `backend/`：认证、持久化、业务编排、资源导出、异步任务和视频渲染。
 - `ml/`：诊断、画像、排序、路径、RAG、内容生成、辅导、训练与评估。
 - `data/`：外部来源登记和本地只读原始输入边界。
+- `scripts/`：仓库级数据来源同步与课程包完整性校验。
 - `docs/`：跨模块架构、接口、ML 设计和赛题追踪文档。
 
 完整目录和依赖规则见[工程架构](docs/architecture.md)。
@@ -114,7 +115,7 @@ npm run dev
 ## 质量检查
 
 ```powershell
-python tools/build_course_bundle.py verify
+python scripts/build_course_bundle.py verify
 python -m pytest ml/tests -q
 python -m pytest backend/tests -q
 python -m ruff check ml/src ml/tests backend/src backend/tests

@@ -60,7 +60,7 @@ LearnPilot-AI/
 ├─ data/
 │  ├─ sources.yaml              外部来源、许可证、版本与导入策略
 │  └─ external/                 完整外部数据与课程原始材料（不进入 Git）
-├─ tools/                       仓库级来源校验与同步工具
+├─ scripts/                     仓库级来源同步与课程包校验脚本
 ├─ docs/                        跨模块文档与统一文档索引
 │  ├─ README.md                 文档导航与归档规则
 │  ├─ architecture.md           工程架构

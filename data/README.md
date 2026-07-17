@@ -26,8 +26,8 @@ data/
 ## 来源同步
 
 ```powershell
-python tools/manage_sources.py verify
-python tools/build_course_bundle.py verify
+python scripts/manage_sources.py verify
+python scripts/build_course_bundle.py verify
 ```
 
 干净克隆已经包含 37 份 Microsoft AI for Beginners 中文课程与实验文档，不依赖 `data/external/` 或网络即可初始化数据库。课程包保留上游 MIT License、固定提交和逐文件 SHA-256，后端会在导入前强制校验清单，随后生成 37 条资源和 337 个 RAG 分块。
@@ -35,9 +35,9 @@ python tools/build_course_bundle.py verify
 只有更新上游固定版本时才需要重建课程包：
 
 ```powershell
-python tools/manage_sources.py sync microsoft-ai-for-beginners --proxy http://127.0.0.1:7897
-python tools/build_course_bundle.py build
-python tools/build_course_bundle.py verify
+python scripts/manage_sources.py sync microsoft-ai-for-beginners --proxy http://127.0.0.1:7897
+python scripts/build_course_bundle.py build
+python scripts/build_course_bundle.py verify
 ```
 
 代理参数可省略。完整同步目录仍属于被 Git 和 Docker 忽略的原始输入边界；构建工具只提取课程映射需要的 37 份文档及许可证。

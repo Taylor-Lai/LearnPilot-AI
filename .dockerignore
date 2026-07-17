@@ -1,6 +1,7 @@
 .git
 .agents
 .codex
+.codex_review*
 .idea
 .vscode
 **/__pycache__

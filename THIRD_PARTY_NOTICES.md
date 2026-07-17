@@ -20,7 +20,7 @@ LearnPilot AI 自主开发代码采用仓库根目录中的 [MIT License](LICENS
 - 许可证：MIT
 - 固定版本：`0b3a28c7c3d081a7de625e496f6be6461188fe93`
 - 分发范围：仓库在 `backend/data/course_materials/ai-for-beginners/` 中随服务分发 37 份中文课程与实验文档，以及上游 `LICENSE`。这些文件继续适用 Microsoft AI for Beginners 的 MIT License，不因 LearnPilot 自主代码采用 MIT License 而改变归属。
-- 完整性：`.learnpilot-source.json` 记录固定版本、逐文件 SHA-256、知识点映射和许可证哈希；`python tools/build_course_bundle.py verify` 可离线复核。上游完整仓库和未入选文件不随项目分发。
+- 完整性：`.learnpilot-source.json` 记录固定版本、逐文件 SHA-256、知识点映射和许可证哈希；`python scripts/build_course_bundle.py verify` 可离线复核。上游完整仓库和未入选文件不随项目分发。
 - 用途：作为《人工智能》课程的可追溯文本知识库，经后端导入为资源与 RAG 分块；LearnPilot 自主编写的课程目录、题库和业务代码与第三方材料分别标注。
 
 ### Dive into Deep Learning

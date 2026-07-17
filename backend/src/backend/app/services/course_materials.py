@@ -141,7 +141,7 @@ def _load_receipt(source_root: Path) -> dict[str, Any]:
     receipt_path = source_root / ".learnpilot-source.json"
     if not receipt_path.is_file():
         raise FileNotFoundError(
-            "Microsoft AI for Beginners is not synchronized; run tools/manage_sources.py sync first"
+            "Microsoft AI for Beginners is not synchronized; run scripts/manage_sources.py sync first"
         )
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     if receipt.get("source_id") != "microsoft-ai-for-beginners" or not receipt.get("revision"):
