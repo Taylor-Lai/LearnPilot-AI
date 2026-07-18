@@ -57,29 +57,31 @@
 
         <div v-if="loading" class="loading-banner card">数据加载中...</div>
 
-        <section v-show="!loading" class="chart-grid">
+        <section v-show="!loading" class="charts-section">
           <div class="chart-card card large">
             <div class="card-title">最近 7 天用户与路径新增趋势</div>
             <div v-if="hasTrendData" ref="trendChartRef" class="chart-box trend-chart-box"></div>
             <div v-else class="chart-empty">暂无数据</div>
           </div>
 
-          <div class="chart-card card">
-            <div class="card-title">Producer 任务状态分布</div>
-            <div v-if="hasProducerData" ref="pieChartRef" class="chart-box pie-chart-box"></div>
-            <div v-else class="chart-empty">暂无数据</div>
-          </div>
+          <div class="three-charts-row">
+            <div class="chart-card card">
+              <div class="card-title">Producer 任务状态分布</div>
+              <div v-if="hasProducerData" ref="pieChartRef" class="chart-box pie-chart-box"></div>
+              <div v-else class="chart-empty">暂无数据</div>
+            </div>
 
-          <div class="chart-card card">
-            <div class="card-title">评测分数分布</div>
-            <div v-if="hasEvaluationData" ref="barChartRef" class="chart-box"></div>
-            <div v-else class="chart-empty">暂无数据</div>
-          </div>
+            <div class="chart-card card">
+              <div class="card-title">评测分数分布</div>
+              <div v-if="hasEvaluationData" ref="barChartRef" class="chart-box"></div>
+              <div v-else class="chart-empty">暂无数据</div>
+            </div>
 
-          <div class="chart-card card">
-            <div class="card-title">资源类型分布</div>
-            <div v-if="hasResourceTypeData" ref="resourceChartRef" class="chart-box pie-chart-box"></div>
-            <div v-else class="chart-empty">暂无数据</div>
+            <div class="chart-card card">
+              <div class="card-title">资源类型分布</div>
+              <div v-if="hasResourceTypeData" ref="resourceChartRef" class="chart-box pie-chart-box"></div>
+              <div v-else class="chart-empty">暂无数据</div>
+            </div>
           </div>
         </section>
 
@@ -678,14 +680,16 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-.chart-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.charts-section {
+  display: flex;
+  flex-direction: column;
   gap: 24px;
 }
 
-.chart-card.large {
-  grid-column: span 2;
+.three-charts-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
 }
 
 .card-title {
@@ -811,12 +815,12 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 992px) {
-  .chart-grid {
+  .three-charts-row {
     grid-template-columns: 1fr;
   }
 
   .chart-card.large {
-    grid-column: span 1;
+    width: 100%;
   }
 }
 

@@ -256,6 +256,16 @@ async function handleRegister() {
 .auth-back-link {
   width: min(100%, 960px);
   margin-bottom: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.auth-back-link:hover {
+  border-color: transparent;
+  background: transparent;
 }
 
 .auth-card {

@@ -1,6 +1,12 @@
 .admin-page {
+  --admin-accent: #4f46e5;
+  --admin-accent-hover: #4338ca;
+  --admin-accent-soft: #eef2ff;
+  --admin-accent-border: #c7d2fe;
   min-height: 100vh;
-  background: #f7f8fa;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(99, 102, 241, 0.1), transparent 26%),
+    linear-gradient(180deg, #f7f8ff 0%, #f7f8fa 42%);
   color: #111827;
   box-sizing: border-box;
 }
@@ -26,7 +32,7 @@
 .admin-page .admin-sidebar {
   width: 240px;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e0e7ff;
   border-radius: 18px;
   padding: 16px;
   box-shadow: var(--shadow-md);
@@ -110,14 +116,15 @@
 }
 
 .admin-page .menu-item:hover {
-  background: #f3f4f6;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
 }
 
 .admin-page .menu-item.active {
-  background: #f3f4f6;
-  color: #111827;
+  background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+  color: var(--admin-accent);
   font-weight: 700;
-  box-shadow: inset 3px 0 0 #111827;
+  box-shadow: inset 3px 0 0 var(--admin-accent);
 }
 
 .admin-page .main-content {
@@ -137,6 +144,36 @@
   padding: 28px;
   box-shadow: var(--shadow-md);
   box-sizing: border-box;
+}
+
+.admin-page .main-content .search-btn,
+.admin-page .main-content .primary-btn,
+.admin-page .main-content .retry-btn,
+.admin-page .main-content .status-badge.active,
+.admin-page .main-content .status-badge.completed,
+.admin-page .main-content .action-btn.success {
+  border-color: var(--admin-accent);
+  background: var(--admin-accent);
+  color: #ffffff;
+}
+
+.admin-page .main-content .search-btn:hover,
+.admin-page .main-content .primary-btn:hover,
+.admin-page .main-content .retry-btn:hover,
+.admin-page .main-content .action-btn.success:hover {
+  border-color: var(--admin-accent-hover);
+  background: var(--admin-accent-hover);
+}
+
+.admin-page .main-content .progress-fill {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+}
+
+.admin-page input:focus,
+.admin-page textarea:focus,
+.admin-page select:focus {
+  border-color: var(--admin-accent) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12) !important;
 }
 
 .admin-page .back-home-btn {
@@ -175,6 +212,18 @@
   .admin-page .admin-layout {
     flex-direction: column;
     gap: 16px;
+  }
+
+  .admin-page .main-content {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .admin-page .toolbar-card,
+  .admin-page .table-card,
+  .admin-page .card {
+    width: 100%;
+    min-width: 0;
   }
 
   .admin-page .admin-sidebar {

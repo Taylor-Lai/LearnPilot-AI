@@ -8,7 +8,7 @@
           ← 返回首页
         </button>
         <p class="eyebrow">INTELLIGENT TUTOR</p>
-        <h2>智能辅导 · AI学习助手</h2>
+        <h2>智能辅导 · AI 虚拟讲师</h2>
         <p class="section-desc">
           基于大模型的智能辅导系统，实时解答学习疑问，提供详细的知识讲解和个性化的学习建议。
         </p>
@@ -68,12 +68,12 @@
           </div>
         </aside>
 
-        <!-- 右侧讲解区域 -->
+        <!-- 右侧虚拟讲师区域 -->
         <section class="explanation-panel">
           <div class="panel-header">
             <div>
-              <h3>智能讲解</h3>
-              <p>AI数字人详细解答</p>
+              <h3>虚拟讲师</h3>
+              <p>AI 实时生成针对性讲解</p>
             </div>
           </div>
 
@@ -553,7 +553,7 @@ onMounted(() => {})
   text-align: center;
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
 .page-back-link {
@@ -561,6 +561,20 @@ onMounted(() => {})
   left: 24px;
   top: 22px;
   margin: 0 0 16px;
+  padding: 8px 18px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  transition: all 0.2s ease;
+}
+
+.page-back-link:hover {
+  background: #111827;
+  color: #ffffff;
 }
 
 .eyebrow {
@@ -569,7 +583,7 @@ onMounted(() => {})
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #111827;
+  color: #6b7280;
 }
 
 .section-head h2 {
@@ -585,7 +599,7 @@ onMounted(() => {})
   margin: 0 auto;
   line-height: 1.9;
   font-size: 15px;
-  color: #111827;
+  color: #4b5563;
 }
 
 /* 主布局 */
@@ -601,7 +615,7 @@ onMounted(() => {})
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 18px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -614,10 +628,6 @@ onMounted(() => {})
   align-items: center;
   gap: 14px;
   background: #ffffff;
-}
-
-.panel-icon {
-  font-size: 32px;
 }
 
 .panel-header h3 {
@@ -651,6 +661,20 @@ onMounted(() => {})
   margin-bottom: 20px;
 }
 
+.chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: #c4c4c4;
+  border-radius: 10px;
+}
+
 .message-item {
   display: flex;
   gap: 12px;
@@ -677,6 +701,7 @@ onMounted(() => {})
 .message-item.user .message-avatar {
   background: #111827;
   color: #ffffff;
+  border-color: #111827;
 }
 
 .message-bubble {
@@ -697,6 +722,8 @@ onMounted(() => {})
   margin: 0;
   line-height: 1.6;
   font-size: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .message-time {
@@ -763,11 +790,12 @@ onMounted(() => {})
   background: #f9fafb;
   color: #111827;
   box-sizing: border-box;
+  transition: all 0.2s ease;
 }
 
 .input-area textarea:focus {
-  border-color: #111827;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
   background: #ffffff;
 }
 
@@ -787,27 +815,29 @@ onMounted(() => {})
 }
 
 .prompt-suggestions button {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border: 1px solid #e5e7eb;
-  border-radius: 18px;
+  border-radius: 20px;
   background: #f3f4f6;
   color: #111827;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .prompt-suggestions button:hover {
   background: #111827;
   color: #ffffff;
   border-color: #111827;
+  transform: translateY(-1px);
 }
 
 .send-btn {
-  padding: 8px 20px;
+  padding: 8px 24px;
   border: none;
   border-radius: 14px;
-  background: #111827;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #ffffff;
   font-size: 14px;
   font-weight: 700;
@@ -816,21 +846,22 @@ onMounted(() => {})
 }
 
 .send-btn:hover:not(:disabled) {
-  background: #1f2937;
   transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
 }
 
 .send-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  transform: none;
 }
 
-/* 右侧讲解面板 */
+/* 右侧讲解面板 - 虚拟讲师 */
 .explanation-panel {
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 18px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -841,14 +872,16 @@ onMounted(() => {})
   padding: 24px;
 }
 
-/* 数字人区域 */
+/* 虚拟讲师区域 */
 .avatar-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 24px;
+  padding-bottom: 20px;
   border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .digital-avatar {
@@ -857,23 +890,51 @@ onMounted(() => {})
   gap: 16px;
 }
 
-.avatar-circle {
+.avatar-container {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  overflow: visible;
+}
+
+.teacher-image-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.teacher-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.teacher-image.speaking {
+  transform: scale(1.02);
+}
+
+.mouth-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+  border-radius: 50%;
 }
 
 .avatar-wave {
   position: absolute;
-  inset: -4px;
+  inset: -6px;
   border-radius: 50%;
-  border: 2px solid #667eea;
+  border: 3px solid #667eea;
   animation: wave 1.5s ease-out infinite;
 }
 
@@ -886,12 +947,6 @@ onMounted(() => {})
     transform: scale(1.3);
     opacity: 0;
   }
-}
-
-.avatar-emoji {
-  font-size: 20px;
-  font-weight: 800;
-  color: #111827;
 }
 
 .avatar-status {
@@ -916,10 +971,18 @@ onMounted(() => {})
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
+    transform: scale(0.9);
   }
+}
+
+.avatar-status span:last-child {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .voice-control {
@@ -928,25 +991,24 @@ onMounted(() => {})
 }
 
 .voice-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  padding: 8px 18px;
   border: 1px solid #e5e7eb;
-  border-radius: 18px;
+  border-radius: 20px;
   background: #f9fafb;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 13px;
+  font-weight: 500;
 }
 
 .voice-btn:hover {
   background: #f1f5f9;
+  border-color: #667eea;
 }
 
 /* 讲解内容区域 */
 .explanation-text {
-  min-height: 400px;
+  min-height: 380px;
 }
 
 .empty-explanation {
@@ -955,19 +1017,22 @@ onMounted(() => {})
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 60px 20px;
+  padding: 50px 20px;
 }
 
 .empty-icon {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: #f3f4f6;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
   margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
 }
 
 .empty-explanation h4 {
@@ -982,39 +1047,42 @@ onMounted(() => {})
 }
 
 .example-questions {
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .example-questions p {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   font-size: 13px;
+  color: #6b7280;
 }
 
 .example-questions button {
   margin: 4px;
-  padding: 8px 16px;
+  padding: 8px 18px;
   border: 1px solid #e5e7eb;
-  border-radius: 18px;
+  border-radius: 20px;
   background: #f9fafb;
   cursor: pointer;
   font-size: 13px;
   transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .example-questions button:hover {
   background: #111827;
   color: #ffffff;
   border-color: #111827;
+  transform: translateY(-1px);
 }
 
 .explanation-wrapper {
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.4s ease;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -1023,19 +1091,22 @@ onMounted(() => {})
 }
 
 .explanation-header {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid #e5e7eb;
 }
 
 .question-badge {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 4px 12px;
   background: #f3f4f6;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  margin-bottom: 10px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .current-question {
@@ -1046,74 +1117,23 @@ onMounted(() => {})
 }
 
 .explanation-body {
-  max-height: 400px;
+  max-height: 350px;
   overflow-y: auto;
   padding-right: 8px;
 }
 
-.visual-aid {
-  margin: 22px 0 4px;
-  padding: 16px;
-  border: 1px solid #dbeafe;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #eff6ff, #ecfeff);
+.explanation-body::-webkit-scrollbar {
+  width: 4px;
 }
 
-.visual-aid h4 {
-  margin: 0 0 14px;
-  color: #0f172a;
+.explanation-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
 }
 
-.visual-flow {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.visual-node {
-  flex: 1;
-  min-width: 0;
-  padding: 12px;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
-}
-
-.visual-node span {
-  display: block;
-  color: #0891b2;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.visual-node strong {
-  display: block;
-  margin: 5px 0;
-  color: #0f172a;
-  font-size: 13px;
-}
-
-.visual-node p {
-  margin: 0;
-  color: #475569;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.visual-arrow {
-  align-self: center;
-  color: #0891b2;
-  font-weight: 900;
-}
-
-@media (max-width: 760px) {
-  .visual-flow {
-    flex-direction: column;
-  }
-
-  .visual-arrow {
-    transform: rotate(90deg);
-  }
+.explanation-body::-webkit-scrollbar-thumb {
+  background: #c4c4c4;
+  border-radius: 10px;
 }
 
 /* Markdown 样式 */
@@ -1181,7 +1201,7 @@ onMounted(() => {})
 }
 
 .explanation-markdown blockquote {
-  border-left: 4px solid #111827;
+  border-left: 4px solid #667eea;
   margin: 16px 0;
   padding: 8px 0 8px 20px;
   color: #6b7280;
@@ -1209,13 +1229,14 @@ onMounted(() => {})
 .explanation-actions {
   display: flex;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid #e5e7eb;
+  flex-wrap: wrap;
 }
 
 .action-btn {
-  padding: 8px 16px;
+  padding: 8px 18px;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   background: #f9fafb;
@@ -1223,11 +1244,13 @@ onMounted(() => {})
   font-size: 13px;
   font-weight: 600;
   transition: all 0.2s ease;
+  color: #111827;
 }
 
 .action-btn:hover {
   background: #f1f5f9;
   transform: translateY(-2px);
+  border-color: #667eea;
 }
 
 /* 响应式 */
@@ -1237,36 +1260,75 @@ onMounted(() => {})
   }
 
   .chat-messages {
-    max-height: 400px;
+    max-height: 350px;
+  }
+
+  .explanation-body {
+    max-height: 300px;
   }
 }
 
 @media (max-width: 720px) {
   .tutor-page {
-    padding: 18px;
+    padding: 16px;
   }
 
   .section-head {
-    padding: 54px 20px 20px;
-    border-radius: 18px;
+    padding: 50px 16px 18px;
+    border-radius: 14px;
   }
 
   .section-head h2 {
-    font-size: 24px;
+    font-size: 22px;
+  }
+
+  .page-back-link {
+    left: 14px;
+    top: 14px;
+    padding: 6px 14px;
+    font-size: 12px;
   }
 
   .qa-panel,
   .explanation-panel {
-    border-radius: 18px;
+    border-radius: 14px;
   }
 
-  .avatar-circle {
-    width: 60px;
-    height: 60px;
+  .panel-header {
+    padding: 14px 18px;
   }
 
-  .avatar-emoji {
-    font-size: 32px;
+  .panel-header h3 {
+    font-size: 17px;
+  }
+
+  .chat-container {
+    padding: 14px;
+  }
+
+  .explanation-content {
+    padding: 16px;
+  }
+
+  .avatar-container {
+    width: 80px;
+    height: 80px;
+  }
+
+  .teacher-image-wrapper {
+    width: 80px;
+    height: 80px;
+  }
+
+  .mouth-canvas {
+    width: 80px;
+    height: 80px;
+  }
+
+  .avatar-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .input-actions {
@@ -1280,6 +1342,116 @@ onMounted(() => {})
 
   .send-btn {
     width: 100%;
+  }
+
+  .current-question {
+    font-size: 15px;
+  }
+
+  .explanation-actions {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ?????????????????? */
+
+.avatar-circle {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+}
+
+.avatar-emoji {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.visual-aid {
+  margin: 22px 0 4px;
+  padding: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #eff6ff, #ecfeff);
+}
+
+.visual-aid h4 {
+  margin: 0 0 14px;
+  color: #0f172a;
+}
+
+.visual-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.visual-node {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.visual-node span {
+  display: block;
+  color: #0891b2;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.visual-node strong {
+  display: block;
+  margin: 5px 0;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.visual-node p {
+  margin: 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.visual-arrow {
+  align-self: center;
+  color: #0891b2;
+  font-weight: 900;
+}
+
+@media (max-width: 760px) {
+  .visual-flow {
+    flex-direction: column;
+  }
+
+  .visual-arrow {
+    transform: rotate(90deg);
+  }
+}
+
+@media (max-width: 720px) {
+
+  .avatar-circle {
+    width: 60px;
+    height: 60px;
+  }
+
+  .avatar-emoji {
+    font-size: 32px;
   }
 }
 </style>

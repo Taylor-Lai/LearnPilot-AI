@@ -160,9 +160,12 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { getResourceList, getResourceDetail, viewResource } from '../api/resource'
 import { marked } from 'marked'
+
+const route = useRoute()
+const router = useRouter()
 
 // 配置 marked 选项
 marked.setOptions({
@@ -262,6 +265,7 @@ const formatResource = (item = {}) => ({
   likes: item.likes ?? 0,
   open_type: item.open_type,
   detail_url: item.detail_url,
+  url: item.url || item.detail_url || '',
   typeLabel:
     item.type === 'document' ? '文档' :
     item.type === 'ppt' ? 'PPT' :
@@ -349,10 +353,13 @@ const openResource = async (item) => {
     console.warn('增加浏览量失败：', e)
   }
 
-  if (item.open_type === 'content') {
+  const targetUrl = String(item.url || item.detail_url || '')
+  const isInternalDetail = /^\/resources\/\d+\/view(?:[?#].*)?$/.test(targetUrl)
+
+  if (item.open_type === 'content' || isInternalDetail) {
     await showDocumentContent(item)
-  } else if (item.url) {
-    window.open(item.url, '_blank')
+  } else if (targetUrl) {
+    window.open(targetUrl, '_blank', 'noopener,noreferrer')
   } else {
     error.value = '该资源暂无可打开的链接'
     setTimeout(() => {
@@ -361,7 +368,20 @@ const openResource = async (item) => {
   }
 }
 
-onMounted(fetchResources)
+const openRequestedResource = async () => {
+  const resourceId = Number(route.query.open)
+  if (!Number.isInteger(resourceId) || resourceId <= 0) return
+  const matched = resources.value.find(item => Number(item.id) === resourceId)
+  await showDocumentContent(matched || { id: resourceId, title: '学习资源' })
+  const query = { ...route.query }
+  delete query.open
+  await router.replace({ path: '/resources', query })
+}
+
+onMounted(async () => {
+  await fetchResources()
+  await openRequestedResource()
+})
 
 watch([activeType, activeCategory, keyword, sortType], () => {
   fetchResources()
@@ -437,6 +457,7 @@ watch([activeType, activeCategory, keyword, sortType], () => {
 /* Content */
 .resource-content {
   flex: 1;
+  min-width: 0;
   max-width: 1050px;
 }
 
@@ -874,5 +895,103 @@ watch([activeType, activeCategory, keyword, sortType], () => {
   border: none;
   border-top: 1px solid #e5e7eb;
   margin: 20px 0;
+}
+
+@media (max-width: 900px) {
+  .resource-page {
+    display: block;
+    padding: 20px;
+  }
+
+  .resource-sidebar {
+    position: static;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .resource-sidebar nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sidebar-link {
+    width: auto;
+    margin: 0;
+  }
+
+  .sidebar-footer {
+    max-width: 220px;
+  }
+
+  .resource-content {
+    width: 100%;
+    max-width: none;
+  }
+
+  .resource-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .resource-page {
+    padding: 14px;
+  }
+
+  .resource-sidebar,
+  .hero-card,
+  .filter-card {
+    border-radius: 14px;
+  }
+
+  .resource-sidebar {
+    padding: 14px;
+  }
+
+  .sidebar-title {
+    margin-bottom: 10px;
+    font-size: 18px;
+  }
+
+  .sidebar-link {
+    flex: 1 1 96px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  .sidebar-footer {
+    max-width: none;
+  }
+
+  .hero-card {
+    padding: 24px 18px;
+  }
+
+  .hero-card h1 {
+    font-size: 26px;
+  }
+
+  .section-header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .resource-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .state-box {
+    padding: 40px 16px;
+  }
+
+  .modal-container {
+    width: calc(100% - 24px);
+    max-height: 90vh;
+  }
+
+  .modal-body {
+    padding: 18px;
+  }
 }
 </style>

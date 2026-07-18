@@ -164,14 +164,17 @@ onMounted(() => {
 
 .admin-button {
   min-width: 104px;
-  border-color: #111827;
-  background: #111827;
+  border-color: #4f46e5;
+  background: #4f46e5;
 }
 
 .action-button:hover,
-.logout-button:hover,
-.admin-button:hover {
+.logout-button:hover {
   background: #1f2937;
+}
+
+.admin-button:hover {
+  background: #4338ca;
 }
 
 .user-greeting {
@@ -185,12 +188,62 @@ onMounted(() => {
   .nav-item { font-size: 15px; }
 }
 @media (max-width: 768px) {
-  .nav-menu { gap: 16px; }
-  .nav-item { font-size: 14px; }
+  .header-inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px 12px;
+    min-height: auto;
+    padding: 10px 14px 8px;
+  }
+
+  .brand {
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  .actions {
+    min-width: 0;
+    margin-left: 0;
+    justify-self: end;
+    gap: 6px;
+  }
+
+  .user-greeting {
+    display: none;
+  }
+
+  .action-button,
+  .logout-button,
+  .admin-button {
+    min-width: auto;
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+
+  .nav-menu {
+    position: static;
+    grid-column: 1 / -1;
+    transform: none;
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #eef0f5;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav-menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-item { font-size: 13px; }
 }
 @media (max-width: 640px) {
-  .header-inner { padding: 0 14px; }
+  .header-inner { padding: 10px 12px 8px; }
   .nav-menu { gap: 10px; }
-  .nav-item { font-size: 13px; }
+  .nav-item { font-size: 12px; }
 }
 </style>
