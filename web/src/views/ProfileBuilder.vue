@@ -1668,4 +1668,11 @@ onUnmounted(() => {
     #f9fafb;
   border: 1px solid #e5e7eb;
 }
+/* Unified product visual language */
+.profile-page { background: transparent; color: var(--text-primary); }
+.hero-card { border-color: #dcd9ff; background: linear-gradient(145deg, #fff, #f3f2ff); box-shadow: var(--shadow-md); }
+.hero-card h1 { color: var(--text-primary); }
+.eyebrow { color: var(--accent-primary); }
+.analysis-card, .conversation-card, .profile-summary-card { border-color: var(--border-default); border-radius: 20px; box-shadow: var(--shadow-sm); }
+.send-button, .primary-button { background: var(--accent-primary); }
 </style>

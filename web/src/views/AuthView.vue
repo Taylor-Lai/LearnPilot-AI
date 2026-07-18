@@ -246,7 +246,10 @@ async function handleRegister() {
 .auth-page {
   min-height: 100vh;
   padding: 32px 24px;
-  background: var(--bg-page);
+  background:
+    radial-gradient(circle at 12% 12%, rgba(99, 91, 255, .16), transparent 28%),
+    radial-gradient(circle at 88% 82%, rgba(47, 128, 237, .13), transparent 30%),
+    #f5f7fb;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -255,8 +258,8 @@ async function handleRegister() {
 
 .auth-back-link {
   width: min(100%, 960px);
-  margin-bottom: 18px;
-  padding: 0;
+  margin-bottom: 14px;
+  padding: 8px 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -273,9 +276,10 @@ async function handleRegister() {
   width: min(100%, 960px);
   height: 560px;
   overflow: hidden;
-  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.8);
+  border-radius: 28px;
   background: #ffffff;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 30px 80px rgba(31, 42, 68, 0.16);
 }
 
 .forms-layer {
@@ -289,7 +293,7 @@ async function handleRegister() {
   top: 0;
   width: 50%;
   height: 100%;
-  background: #f5f5f5;
+  background: rgba(255,255,255,.96);
 }
 
 .form-left {
@@ -312,9 +316,9 @@ async function handleRegister() {
 
 .form-box h1 {
   margin: 0 0 36px;
-  color: #333333;
-  font-size: 40px;
-  font-weight: 400;
+  color: var(--text-primary);
+  font-size: 36px;
+  font-weight: 780;
 }
 
 .input-group {
@@ -327,9 +331,9 @@ async function handleRegister() {
   width: 100%;
   height: 54px;
   padding: 0 18px;
-  border: none;
+  border: 1px solid var(--border-default);
   outline: none;
-  background: #ffffff;
+  background: #f8f9fc;
   color: #333333;
   font-size: 15px;
   border-radius: 10px;
@@ -340,7 +344,9 @@ async function handleRegister() {
 }
 
 .input-group input:focus {
-  box-shadow: 0 0 0 3px rgba(0, 114, 255, 0.12);
+  border-color: var(--accent-primary);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(99, 91, 255, 0.12);
 }
 
 .feedback {
@@ -364,12 +370,12 @@ async function handleRegister() {
   height: 50px;
   margin-top: 34px;
   border: none;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #0072ff, #0094b8);
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent-primary), #4941c8);
   color: #ffffff;
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.06em;
   cursor: pointer;
   transition:
     transform 0.25s ease,
@@ -379,7 +385,7 @@ async function handleRegister() {
 .submit-button:hover,
 .switch-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 30px rgba(0, 114, 255, 0.26);
+  box-shadow: 0 14px 30px rgba(99, 91, 255, 0.26);
 }
 
 .submit-button:disabled {
@@ -395,7 +401,7 @@ async function handleRegister() {
   width: 50%;
   height: 100%;
   overflow: hidden;
-  background: #00305c;
+  background: #23213f;
   transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -406,7 +412,9 @@ async function handleRegister() {
 .slide-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #00305c 0%, #005c78 100%);
+  background:
+    radial-gradient(circle at 25% 20%, rgba(255,255,255,.18), transparent 28%),
+    linear-gradient(145deg, #242042 0%, #4941c8 62%, #635bff 100%);
 }
 
 .slide-content {
@@ -428,7 +436,7 @@ async function handleRegister() {
 .slide-content h2 {
   margin: 0 0 18px;
   font-size: 36px;
-  font-weight: 400;
+  font-weight: 760;
 }
 
 .slide-content p {

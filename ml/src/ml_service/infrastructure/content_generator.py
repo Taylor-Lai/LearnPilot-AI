@@ -272,7 +272,7 @@ class ContentGenerator:
             "\n要求：内容必须引用检索依据，练习题要可验证，答案要简洁，难度要贴合学生风险等级，避免不可验证建议。"
         )
 
-    def _parse_generated_card(self, generated: str) -> dict[str, str]:
+    def _parse_generated_card(self, generated: str) -> dict[str, object]:
         data = decode_json_object(generated)
         allowed = {
             "title",
@@ -285,7 +285,19 @@ class ContentGenerator:
             "evidence_refs",
             "difficulty_reason",
         }
-        return {key: str(value) for key, value in data.items() if key in allowed and value}
+        parsed = {}
+        for key, value in data.items():
+            if key not in allowed or value in (None, "", [], {}):
+                continue
+            # Practice may legitimately be a structured question list. Preserve it
+            # for the resource formatter instead of converting it to Python repr.
+            if key == "practice" and isinstance(value, (list, dict)):
+                parsed[key] = value
+            elif key == "evidence_refs" and isinstance(value, list):
+                parsed[key] = value
+            else:
+                parsed[key] = str(value)
+        return parsed
 
     def _fallback_card(
         self,

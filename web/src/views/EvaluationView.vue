@@ -902,4 +902,11 @@ select:disabled {
     grid-template-columns: 1fr;
   }
 }
+/* Unified product visual language */
+.evaluation-page { background: transparent; color: var(--text-primary); }
+.hero-card { border: 0; border-radius: 24px; background: linear-gradient(135deg, #171b2e, #292654 58%, #4338ca); box-shadow: var(--shadow-lg); }
+.hero-card h1, .hero-card .eyebrow { color: #fff; }
+.hero-card .description { color: rgba(255,255,255,.72); }
+.setup-card, .quiz-card, .result-card, .history-card { border-color: var(--border-default); border-radius: 20px; box-shadow: var(--shadow-md); }
+.primary-button { background: var(--accent-primary); }
 </style>

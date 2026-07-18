@@ -1926,4 +1926,13 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
+/* Unified product visual language */
+.learning-path-page { background: transparent; color: var(--text-primary); }
+.hero-card { padding: 44px 48px; border: 0; border-radius: 24px; background: linear-gradient(135deg, #171b2e, #292654 58%, #4338ca); box-shadow: var(--shadow-lg); }
+.hero-card h1 { color: #fff; }
+.hero-card .description { color: rgba(255,255,255,.72); }
+.hero-badge { background: rgba(255,255,255,.12); color: #c9c6ff; }
+.history-card, .profile-card, .planner-card, .result-card { border-color: var(--border-default); border-radius: 20px; box-shadow: var(--shadow-md); }
+.primary-button { background: var(--accent-primary); }
+.primary-button:hover:not(:disabled) { background: var(--accent-hover); box-shadow: 0 10px 24px rgba(99,91,255,.2); }
 </style>

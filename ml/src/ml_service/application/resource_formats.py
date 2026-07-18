@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ast
+import json
 from html import escape
 from typing import Any
 
@@ -10,6 +12,34 @@ class ResourceBundleBuilder:
     """Build export-ready teaching assets without external models or binary renderers."""
 
     FORMAT_VERSION = "learning-resource-bundle-v1"
+
+    @staticmethod
+    def _structured_practice(value: Any) -> list[dict[str, Any]]:
+        """Normalize model practice output without exposing serialized data to users."""
+        parsed = value
+        if isinstance(value, str):
+            candidate = value.strip()
+            if candidate.startswith(("[", "{")):
+                for loader in (json.loads, ast.literal_eval):
+                    try:
+                        parsed = loader(candidate)
+                        break
+                    except (ValueError, SyntaxError, TypeError, json.JSONDecodeError):
+                        continue
+        if isinstance(parsed, dict):
+            parsed = parsed.get("questions") or parsed.get("items") or [parsed]
+        if not isinstance(parsed, list):
+            return []
+        return [item for item in parsed if isinstance(item, dict) and (item.get("question") or item.get("prompt"))]
+
+    def _practice_markdown(self, card: dict[str, Any]) -> str:
+        items = self._structured_practice(card.get("practice"))
+        if not items:
+            return str(card.get("practice") or "")
+        return "\n".join(
+            f"{index}. {item.get('question') or item.get('prompt')}"
+            for index, item in enumerate(items, start=1)
+        )
 
     def build(self, card: dict[str, Any], step: LearningStep, profile: StudentProfile) -> dict[str, Any]:
         point = step.knowledge_point
@@ -46,7 +76,7 @@ class ResourceBundleBuilder:
             {"heading": "核心讲解", "content": card.get("explanation", "")},
             {"heading": "示例", "content": card.get("example", "")},
             {"heading": "常见错误", "content": card.get("mistake_analysis", "")},
-            {"heading": "课后练习", "content": card.get("practice", "")},
+            {"heading": "课后练习", "content": self._practice_markdown(card)},
         ]
         markdown = "\n\n".join(f"## {item['heading']}\n\n{item['content']}" for item in sections)
         return {
@@ -123,13 +153,34 @@ class ResourceBundleBuilder:
         }
 
     def _quiz_bank(self, card: dict, point: str) -> dict:
+        generated_items = self._structured_practice(card.get("practice"))
+        if generated_items:
+            questions = []
+            for index, item in enumerate(generated_items, start=1):
+                options = item.get("options") if isinstance(item.get("options"), list) else []
+                question_type = item.get("type") or ("single_choice" if options else "short_answer")
+                questions.append(
+                    {
+                        "id": str(item.get("id") or f"q{index}"),
+                        "type": question_type,
+                        "prompt": str(item.get("question") or item.get("prompt") or ""),
+                        "options": options,
+                        "answer": item.get("answer") or card.get("answer", ""),
+                        "rubric": item.get("rubric") or ["概念准确", "推理清晰", "回答完整"],
+                        "evidence_refs": item.get("evidence_refs") or card.get("evidence_refs", ""),
+                    }
+                )
+            return {
+                "content_type": "application/vnd.learnpilot.quiz-bank+json",
+                "questions": questions,
+            }
         return {
             "content_type": "application/vnd.learnpilot.quiz-bank+json",
             "questions": [
                 {
                     "id": "q1",
                     "type": "short_answer",
-                    "prompt": card.get("practice", f"解释 {point} 的核心概念。"),
+                    "prompt": self._practice_markdown(card) or f"解释 {point} 的核心概念。",
                     "answer": card.get("answer", ""),
                     "rubric": ["概念准确", "步骤完整", "能够解释原因"],
                 },

@@ -1454,4 +1454,10 @@ onMounted(() => {})
     font-size: 32px;
   }
 }
+/* Unified product visual language */
+.tutor-page { background: transparent; color: var(--text-primary); }
+.tutor-shell, .sidebar, .chat-panel, .explanation-panel { border-color: var(--border-default); border-radius: 20px; box-shadow: var(--shadow-md); }
+.send-button, .primary-button { background: var(--accent-primary); }
+.message.user .message-bubble { background: var(--accent-primary); }
+.message.assistant .message-bubble { border-color: var(--border-default); background: #f7f8fc; color: var(--text-primary); }
 </style>

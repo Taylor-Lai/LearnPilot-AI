@@ -994,4 +994,19 @@ watch([activeType, activeCategory, keyword, sortType], () => {
     padding: 18px;
   }
 }
+
+/* Unified product visual language */
+.resource-page { justify-content: center; background: transparent; }
+.resource-sidebar { border-radius: 24px; border-color: var(--border-default); }
+.sidebar-link.active { background: linear-gradient(135deg, var(--accent-primary), #5046dc); box-shadow: 0 8px 18px rgba(99,91,255,.2); }
+.resource-content { max-width: 1120px; }
+.hero-card { position: relative; overflow: hidden; padding: 40px; border: 0; border-radius: 24px; background: linear-gradient(135deg, #171b2e, #292654 58%, #4338ca); }
+.hero-card::after { position: absolute; right: -70px; top: -90px; width: 260px; height: 260px; border: 55px solid rgba(255,255,255,.07); border-radius: 50%; content: ""; }
+.hero-card .eyebrow { color: #b9b5ff; }
+.hero-card h1 { position: relative; z-index: 1; color: #fff; }
+.hero-card p { position: relative; z-index: 1; color: rgba(255,255,255,.72); }
+.filter-card, .resource-card { border-radius: 20px; border-color: var(--border-default); }
+.filter-tag.active { border-color: var(--accent-primary); background: var(--accent-soft); color: var(--accent-primary); }
+.resource-card:hover { border-color: #d9d6ff; box-shadow: 0 18px 38px rgba(65,57,140,.12); }
+
 </style>

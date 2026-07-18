@@ -518,8 +518,10 @@ def _merge_ml_generation(result: dict, ml_result: dict) -> dict:
                 "options": item.get("options") or [],
                 "answer": item.get("answer", ""),
                 "analysis": "；".join(item.get("rubric") or []),
+                "evidence_refs": item.get("evidence_refs") or [],
             }
             for item in quiz["questions"]
+            if isinstance(item, dict) and item.get("prompt")
         ]
 
     storyboard = formats.get("video_storyboard") or {}

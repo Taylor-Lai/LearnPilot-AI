@@ -1,31 +1,47 @@
 :root {
-  /* Background */
-  --bg-page: #f7f8fa;
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg-page: #f5f7fb;
   --bg-card: #ffffff;
-  --bg-muted: #f3f4f6;
+  --bg-muted: #f0f3f9;
+  --bg-elevated: rgba(255, 255, 255, 0.92);
 
-  /* Text */
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
+  /* Typography */
+  --text-primary: #182033;
+  --text-secondary: #667085;
+  --text-muted: #98a2b3;
+  --font-sans: "Inter", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "Inter", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
 
-  /* Border */
-  --border-default: #e5e7eb;
+  /* Brand and semantic colors */
+  --accent-primary: #635bff;
+  --accent-hover: #5148e5;
+  --accent-soft: #eeecff;
+  --accent-blue: #2f80ed;
+  --success: #12a36d;
+  --warning: #e58a17;
+  --danger: #dc4c64;
 
-  /* Brand */
-  --accent-primary: #6a52ff;
+  /* Borders */
+  --border-default: #e3e8f0;
+  --border-strong: #cdd5df;
 
   /* Actions */
-  --btn-primary-bg: #111827;
-  --btn-primary-hover: #1f2937;
+  --btn-primary-bg: #635bff;
+  --btn-primary-hover: #5148e5;
 
   /* Radius */
-  --radius-sm: 10px;
-  --radius-md: 14px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
   --radius-lg: 18px;
-  --radius-input: 12px;
+  --radius-xl: 24px;
+  --radius-input: 10px;
 
   /* Shadow */
-  --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 2px 8px rgba(31, 42, 68, 0.06);
+  --shadow-md: 0 12px 32px rgba(31, 42, 68, 0.08);
+  --shadow-lg: 0 24px 64px rgba(31, 42, 68, 0.12);
   --shadow-card: var(--shadow-md);
 }

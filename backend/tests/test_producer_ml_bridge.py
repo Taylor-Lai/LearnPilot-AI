@@ -72,6 +72,28 @@ class ProducerMlBridgeTest(unittest.TestCase):
         self.assertTrue(merged["videos"][0]["generated"])
         self.assertIn("卷积核移动", merged["videos"][0]["animation_html"])
 
+    def test_ml_bridge_drops_invalid_quiz_rows(self) -> None:
+        local_result = {
+            "topic": "Python",
+            "lecture": {"title": "旧讲义", "content": "旧内容"},
+            "videos": [],
+            "agent_traces": [],
+        }
+        ml_result = {
+            "generated_cards": [{
+                "resource_bundle": {"formats": {"quiz_bank": {"questions": [
+                    {"id": "bad", "type": "short_answer", "prompt": ""},
+                    {"id": "ok", "type": "short_answer", "prompt": "解释变量。", "answer": "变量保存值。"},
+                ]}}},
+                "rag_context": [],
+            }],
+        }
+
+        merged = _merge_ml_generation(local_result, ml_result)
+
+        self.assertEqual(len(merged["exercises"]), 1)
+        self.assertEqual(merged["exercises"][0]["question"], "解释变量。")
+
 
 if __name__ == "__main__":
     unittest.main()

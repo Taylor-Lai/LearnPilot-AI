@@ -259,9 +259,9 @@
                       </button>
                     </aside>
 
-                    <article class="doc-card">
+                    <article class="doc-card markdown-body">
                       <h5>{{ activeDoc.title }}</h5>
-                      <p>{{ activeDoc.content }}</p>
+                      <div v-html="renderMarkdown(activeDoc.content)"></div>
                       <ul>
                         <li v-for="point in activeDoc.points" :key="point">{{ point }}</li>
                       </ul>
@@ -270,9 +270,9 @@
 
                   <div v-if="showDocPreview && documentSections.length" class="doc-preview">
                     <h5>完整文档预览</h5>
-                    <section v-for="section in documentSections" :key="section.title">
+                    <section v-for="section in documentSections" :key="section.title" class="markdown-body">
                       <strong>{{ section.title }}</strong>
-                      <p>{{ section.content }}</p>
+                      <div v-html="renderMarkdown(section.content)"></div>
                     </section>
                   </div>
                 </template>
@@ -352,24 +352,34 @@
                     <article v-for="(q, index) in quizQuestions" :key="q.id" class="quiz-card">
                       <div class="quiz-head">
                         <strong>{{ index + 1 }}. {{ q.title }}</strong>
-                        <span v-if="quizSubmitted" :class="isCorrect(q) ? 'right' : 'wrong'">
-                          {{ isCorrect(q) ? '正确' : '错误' }}
+                        <span v-if="quizSubmitted" :class="q.gradable ? (isCorrect(q) ? 'right' : 'wrong') : 'review'">
+                          {{ q.gradable ? (isCorrect(q) ? '正确' : '错误') : '参考答案' }}
                         </span>
                       </div>
-                      <p>{{ q.question }}</p>
+                      <div class="quiz-question markdown-body" v-html="renderMarkdown(q.question)"></div>
                       <label v-for="option in q.options" :key="option.value" class="option-row">
                         <input v-model="answers[q.id]" type="radio" :name="q.id" :value="option.value" :disabled="quizSubmitted" />
                         <span>{{ option.value }}. {{ option.text }}</span>
                       </label>
+                      <textarea
+                        v-if="!q.options.length"
+                        v-model.trim="answers[q.id]"
+                        class="short-answer-input"
+                        rows="4"
+                        :disabled="quizSubmitted"
+                        placeholder="写下你的思路和答案，提交后可对照参考答案复盘"
+                      ></textarea>
                       <div v-if="quizSubmitted" class="analysis-box">
-                        正确答案：{{ q.answer }}。{{ q.analysis }}
+                        <div class="analysis-answer"><strong>参考答案：</strong>{{ q.answer || '暂无标准答案' }}</div>
+                        <div class="analysis-detail">{{ q.analysis }}</div>
                       </div>
                     </article>
                   </div>
 
                   <div v-if="quizQuestions.length" class="quiz-footer">
                     <button class="primary-btn" @click="submitQuiz">提交批改</button>
-                    <strong v-if="quizSubmitted">得分：{{ quizScore }} / {{ quizQuestions.length }}</strong>
+                    <strong v-if="quizSubmitted && gradableQuestionCount">客观题得分：{{ quizScore }} / {{ gradableQuestionCount }}</strong>
+                    <span v-else-if="quizSubmitted" class="review-hint">简答题请根据参考答案完成自评与复盘</span>
                   </div>
                 </template>
 
@@ -464,6 +474,7 @@ import {
   getCurrentProducerTaskId,
   setCurrentProducerTaskId,
 } from '@/utils/producerSession'
+import { normalizeDisplayContent, renderMarkdown } from '@/utils/contentPresentation'
 
 const router = useRouter()
 
@@ -553,7 +564,8 @@ const totalVideoPages = computed(() => Math.max(1, Math.ceil(videos.length / pag
 const pagedVideos = computed(() => videos.slice((videoPage.value - 1) * pageSize, videoPage.value * pageSize))
 
 const quizQuestions = reactive([])
-const quizScore = computed(() => quizQuestions.reduce((sum, q) => sum + (answers[q.id] === q.answer ? 1 : 0), 0))
+const gradableQuestionCount = computed(() => quizQuestions.filter(q => q.gradable).length)
+const quizScore = computed(() => quizQuestions.reduce((sum, q) => sum + (q.gradable && isCorrect(q) ? 1 : 0), 0))
 
 const readings = reactive([])
 const codeExamples = ref([])
@@ -628,12 +640,7 @@ function pickList(data, keys = ['items', 'list', 'nodes', 'questions', 'exercise
 
 function normalizeOptions(options) {
   if (!Array.isArray(options) || !options.length) {
-    return [
-      { value: 'A', text: '选项A' },
-      { value: 'B', text: '选项B' },
-      { value: 'C', text: '选项C' },
-      { value: 'D', text: '选项D' },
-    ]
+    return []
   }
   if (typeof options[0] === 'string') {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -657,7 +664,7 @@ function normalizeOptions(options) {
 function parseLecture(lecture) {
   if (!lecture) return []
   if (typeof lecture === 'string') {
-    return [{ title: '讲解文档', content: lecture, points: [] }]
+    return [{ title: '讲解文档', content: normalizeDisplayContent(lecture), points: [] }]
   }
   const content = lecture.content || ''
   const sections = content
@@ -667,7 +674,7 @@ function parseLecture(lecture) {
     .map((part, index) => {
       const lines = part.split('\n')
       const title = lines[0].replace(/^#+\s*/, '').trim() || `章节${index + 1}`
-      const body = lines.slice(1).join('\n').trim()
+      const body = normalizeDisplayContent(lines.slice(1).join('\n').trim())
       return {
         title,
         content: body || part,
@@ -677,7 +684,7 @@ function parseLecture(lecture) {
   if (sections.length) return sections
   return [{
     title: lecture.title || '讲解文档',
-    content,
+    content: normalizeDisplayContent(content),
     points: pickList(lecture.references).map(item => item.title || item.name || '').filter(Boolean),
   }]
 }
@@ -779,14 +786,23 @@ function parseReading(reading, datasets) {
 
 function mapExercises(raw) {
   const questions = pickList(raw, ['items', 'questions', 'exercises', 'list'])
-  return questions.map((question, index) => ({
-    id: question.id || index + 1,
-    title: question.title || `习题${index + 1}`,
-    question: question.question || question.content || '',
-    options: normalizeOptions(question.options),
-    answer: question.answer || 'A',
-    analysis: question.analysis || question.explanation || '解析内容',
-  }))
+  return questions
+    .filter(question => question && typeof question === 'object')
+    .map((question, index) => {
+      const options = normalizeOptions(question.options)
+      return {
+        id: question.id || index + 1,
+        type: question.type || (options.length ? 'single_choice' : 'short_answer'),
+        title: question.title || `习题 ${index + 1}`,
+        question: normalizeDisplayContent(question.question || question.prompt || question.content || ''),
+        options,
+        answer: question.answer || '',
+        analysis: question.analysis || question.explanation || '请对照参考答案检查概念、步骤与推理过程。',
+        evidenceRefs: question.evidence_refs || [],
+        gradable: options.length > 0 && Boolean(question.answer),
+      }
+    })
+    .filter(question => question.question)
 }
 
 function mapVideos(raw) {
@@ -1279,7 +1295,8 @@ async function downloadDocument(format = 'docx') {
 }
 
 function isCorrect(question) {
-  return answers[question.id] === question.answer
+  if (!question.gradable) return false
+  return String(answers[question.id] || '').trim().toUpperCase() === String(question.answer || '').trim().toUpperCase()
 }
 
 function submitQuiz() {
@@ -1413,7 +1430,7 @@ onBeforeUnmount(() => {
 .agent-page {
   min-height: 100vh;
   padding: 32px;
-  background: linear-gradient(135deg, #f0f2f5 0%, #e8ecf1 50%, #dce1e8 100%);
+  background: transparent;
   color: #1a1a2e;
   box-sizing: border-box;
   scroll-behavior: smooth;
@@ -3118,6 +3135,72 @@ onBeforeUnmount(() => {
     width: auto;
     margin-bottom: 10px;
   }
+}
+
+/* Product-grade presentation overrides */
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3) { margin: 1.2em 0 0.55em; color: var(--text-primary); line-height: 1.35; }
+.markdown-body :deep(h1) { font-size: 22px; }
+.markdown-body :deep(h2) { font-size: 18px; }
+.markdown-body :deep(h3) { font-size: 16px; }
+.markdown-body :deep(p) { margin: 0.55em 0; color: #344054; line-height: 1.8; }
+.markdown-body :deep(ul), .markdown-body :deep(ol) { margin: 0.7em 0; padding-left: 1.5em; }
+.markdown-body :deep(li) { margin: 0.35em 0; color: #344054; }
+.markdown-body :deep(code) { padding: 0.15em 0.4em; border-radius: 6px; background: #eef1f7; color: #6941c6; font-family: var(--font-mono); font-size: 0.9em; }
+.markdown-body :deep(pre) { overflow-x: auto; padding: 16px; border-radius: 12px; background: #111827; color: #e5e7eb; }
+.markdown-body :deep(pre code) { padding: 0; background: transparent; color: inherit; }
+.markdown-body :deep(table) { width: 100%; border-collapse: collapse; }
+.markdown-body :deep(th), .markdown-body :deep(td) { padding: 10px 12px; border: 1px solid var(--border-default); text-align: left; }
+
+.short-answer-input {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px 16px;
+  resize: vertical;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.review { padding: 4px 12px; border-radius: 999px; background: #fff4e5; color: #a15c07; font-size: 12px; font-weight: 750; }
+.review-hint { color: var(--text-secondary); font-size: 13px; font-weight: 650; }
+
+.agent-layout { grid-template-columns: 232px minmax(0, 1fr); gap: 20px; }
+.section-head { border: 0; background: linear-gradient(135deg, #171b2e 0%, #292654 56%, #4338ca 100%); box-shadow: var(--shadow-lg); }
+.section-head h2, .section-head .eyebrow { color: #fff; }
+.section-head .section-desc { color: rgba(255,255,255,.72); }
+.page-back-link { border-color: rgba(255,255,255,.15); background: rgba(255,255,255,.1); color: #fff; }
+.page-back-link:hover { background: rgba(255,255,255,.18); }
+.agent-nav, .workspace { border-color: var(--border-default); box-shadow: var(--shadow-md); }
+.agent-nav { border-radius: var(--radius-xl); }
+.nav-item.active { background: linear-gradient(135deg, var(--accent-primary), #5046dc); box-shadow: 0 10px 24px rgba(99,91,255,.22); }
+.workspace { border-radius: var(--radius-xl); }
+.generation-panel { background: #f7f8fc; border-color: var(--border-default); }
+.resource-preview { border-radius: 18px; box-shadow: 0 8px 28px rgba(31,42,68,.05); }
+.primary-btn, .input-row button { background: var(--accent-primary); }
+.primary-btn:hover, .input-row button:hover:not(:disabled) { background: var(--accent-hover); box-shadow: 0 8px 18px rgba(99,91,255,.2); }
+.chat-item.user p { background: var(--accent-primary); }
+.chat-item.ai .ai-avatar { background: var(--accent-primary); }
+
+.mindmap-wrapper { padding: 24px; overflow: visible; background: linear-gradient(145deg, #fafaff, #f5f7ff); }
+.mindmap-container.horizontal { display: grid; grid-template-columns: 160px minmax(0,1fr); gap: 28px; min-height: auto; padding: 8px; align-items: center; }
+.mindmap-center { position: static; transform: none; }
+.center-node { min-height: 150px; background: linear-gradient(145deg, #635bff, #4941c8); box-shadow: 0 16px 36px rgba(99,91,255,.25); }
+.mindmap-branches-horizontal, .preview-mode .mindmap-branches-horizontal { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; width: auto; padding-left: 0; }
+.branch-group-horizontal, .preview-mode .branch-group-horizontal,
+.branch-group-horizontal:nth-child(n) { position: static; display: block; min-width: 0; }
+.branch-main-horizontal { justify-content: flex-start; min-height: 48px; border: 1px solid #d9d6ff; background: #fff; color: #302c73; }
+.branch-children-horizontal { margin: 8px 0 0; gap: 6px; }
+.child-node-horizontal { white-space: normal; border-color: #e7e5ff; background: #f8f7ff; color: #4a4678; }
+
+@media (max-width: 760px) {
+  .mindmap-container.horizontal { grid-template-columns: 1fr; }
+  .center-node { min-height: 84px; }
+  .center-title-vertical { writing-mode: horizontal-tb; letter-spacing: .04em; }
+  .mindmap-branches-horizontal, .preview-mode .mindmap-branches-horizontal { grid-template-columns: 1fr; }
 }
 
 /* 真实问答结构：光标不能继承头像方块样式。 */

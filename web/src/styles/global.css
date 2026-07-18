@@ -19,13 +19,36 @@ body {
 
 body {
   color: var(--text-primary, #111827);
-  font-family:
-    "Source Han Serif SC",
-    "Noto Serif SC",
-    serif;
-  line-height: 1.5;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(99, 91, 255, 0.08), transparent 28%),
+    radial-gradient(circle at 92% 18%, rgba(47, 128, 237, 0.07), transparent 24%);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+
+::selection {
+  background: rgba(99, 91, 255, 0.2);
 }
 
 a {
@@ -37,4 +60,23 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(99, 91, 255, 0.22);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-color: #b8c0d0 transparent;
+  scrollbar-width: thin;
 }
