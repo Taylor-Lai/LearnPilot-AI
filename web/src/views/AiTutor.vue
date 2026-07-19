@@ -127,6 +127,33 @@
                       </template>
                     </div>
                   </section>
+                  <section v-if="currentEvidence.length" class="evidence-panel" aria-label="参考资料">
+                    <div class="evidence-heading">
+                      <div>
+                        <span>GROUNDED SOURCES</span>
+                        <h4>参考资料</h4>
+                      </div>
+                      <em>{{ currentEvidence.length }} 条可信来源</em>
+                    </div>
+                    <article v-for="item in currentEvidence" :key="item.key" class="evidence-card">
+                      <div class="evidence-index">{{ item.index }}</div>
+                      <div class="evidence-copy">
+                        <strong>{{ item.title }}</strong>
+                        <p v-if="item.snippet">{{ item.snippet }}</p>
+                        <div class="evidence-meta">
+                          <span>{{ item.source }}</span>
+                          <span v-if="item.location">{{ item.location }}</span>
+                        </div>
+                      </div>
+                      <a
+                        v-if="item.url"
+                        :href="item.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="evidence-link"
+                      >查看原文</a>
+                    </article>
+                  </section>
                 </div>
                 <div class="explanation-actions">
                   <button class="action-btn" @click="copyExplanation">
@@ -169,6 +196,7 @@ const isVoiceEnabled = ref(true)
 const currentQuestion = ref('')
 const currentExplanation = ref('')
 const currentVisualAid = ref(null)
+const currentEvidence = ref([])
 const chatMessagesRef = ref(null)
 
 const messages = ref([
@@ -200,6 +228,7 @@ function sanitizeHtml(html) {
   return html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/<img\b[^>]*>/gi, '')
     .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '')
     .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
     .replace(/javascript:/gi, '')
@@ -335,7 +364,9 @@ function adaptTutorResponse(res) {
   const message =
     firstParagraph.length > 200 ? `${firstParagraph.slice(0, 200)}...` : firstParagraph
 
-  let detailed = answer
+  let detailed = evidence.length
+    ? answer.replace(/\n#{2,3}\s*参考资料\s*\n[\s\S]*$/i, '').trim()
+    : answer
 
   if (hints.length) {
     detailed += `\n\n### 提示\n${hints.map((hint) => `- ${hint}`).join('\n')}`
@@ -345,24 +376,19 @@ function adaptTutorResponse(res) {
     detailed += `\n\n### 下一步建议\n${nextAction}`
   }
 
-  if (evidence.length) {
-    detailed += `\n\n### 参考资料\n${evidence
-      .map((item) => {
-        const title = item.title || `资源 ${item.resource_id || ''}`
-        const source = item.source || item.resource_id || item.chunk_id || ''
-        const snippet = item.snippet || item.summary || ''
-        let line = `- **${title}**`
-        if (source) line += `（来源：${source}）`
-        if (snippet) line += `\n  ${snippet}`
-        return line
-      })
-      .join('\n')}`
-  }
-
   return {
     message,
     detailedExplanation: detailed,
     visualAid: res?.visual_aid || null,
+    evidence: evidence.map((item, index) => ({
+      key: `${item.resource_id || 'source'}-${item.chunk_id || index}`,
+      index: String(index + 1).padStart(2, '0'),
+      title: item.title || '课程参考资料',
+      source: item.source || '人工智能课程知识库',
+      location: item.location || '',
+      snippet: item.snippet || item.summary || '',
+      url: /^https?:\/\//i.test(item.source_url || '') ? item.source_url : '',
+    })),
   }
 }
 
@@ -409,6 +435,7 @@ async function requestTutorAnswer(question, { appendUserMessage = true } = {}) {
     currentQuestion.value = question
     currentExplanation.value = adapted.detailedExplanation
     currentVisualAid.value = adapted.visualAid
+    currentEvidence.value = adapted.evidence
     startVoicePlay(adapted.detailedExplanation)
   } catch {
     isTyping.value = false
@@ -477,6 +504,7 @@ async function regenerateAnswer() {
 
     currentExplanation.value = adapted.detailedExplanation
     currentVisualAid.value = adapted.visualAid
+    currentEvidence.value = adapted.evidence
     startVoicePlay(adapted.detailedExplanation)
     scrollToBottom()
   } catch {
@@ -1443,6 +1471,113 @@ onMounted(() => {})
 
   .avatar-emoji {
     font-size: 32px;
+  }
+}
+
+.evidence-panel {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #e4e7ec;
+}
+
+.evidence-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.evidence-heading span {
+  display: block;
+  margin-bottom: 3px;
+  color: #6941c6;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.evidence-heading h4 {
+  margin: 0;
+  color: #101828;
+  font-size: 17px;
+}
+
+.evidence-heading em {
+  color: #667085;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.evidence-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  margin-top: 9px;
+  background: #f8f9fc;
+  border: 1px solid #e4e7ec;
+  border-radius: 14px;
+}
+
+.evidence-index {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  background: #6941c6;
+  border-radius: 9px;
+  place-items: center;
+}
+
+.evidence-copy strong {
+  display: block;
+  color: #101828;
+  font-size: 13px;
+}
+
+.evidence-copy p {
+  margin: 6px 0;
+  color: #475467;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.evidence-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #667085;
+  font-size: 11px;
+}
+
+.evidence-meta span + span::before {
+  margin-right: 8px;
+  content: '·';
+}
+
+.evidence-link {
+  padding: 6px 9px;
+  color: #6941c6;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  background: #f0ebff;
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .evidence-card {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  .evidence-link {
+    grid-column: 2;
+    justify-self: start;
   }
 }
 /* Unified product visual language */

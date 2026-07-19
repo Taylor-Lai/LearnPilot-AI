@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -924,24 +925,34 @@ class LearningService:
         )
         tokens = [term for term in known_terms if term.casefold() in question.casefold()]
         tokens.extend(token for token in question.replace("？", " ").replace("?", " ").split() if token)
-        query = db.query(ResourceChunk)
-        chunks = query.limit(80).all()
+        chunks = db.query(ResourceChunk).limit(80).all()
+        resources = {
+            resource.id: resource
+            for resource in db.query(CourseResource)
+            .filter(CourseResource.id.in_({chunk.resource_id for chunk in chunks}))
+            .all()
+        }
         scored = []
         for chunk in chunks:
             score = sum(1 for token in tokens if token.lower() in chunk.content.lower())
             if score or any(char in chunk.content for char in question[:12]):
                 scored.append((score, chunk))
         scored.sort(key=lambda item: item[0], reverse=True)
-        evidence = [
-            {
-                "chunk_id": chunk.id,
-                "resource_id": chunk.resource_id,
-                "title": f"课程资源 {chunk.resource_id}",
-                "source": f"resource_chunk:{chunk.id}",
-                "snippet": chunk.content[:180],
-            }
-            for _, chunk in scored[:limit]
-        ]
+        evidence = []
+        for _, chunk in scored[:limit]:
+            resource = resources.get(chunk.resource_id)
+            metadata = resource.resource_metadata if resource and isinstance(resource.resource_metadata, dict) else {}
+            evidence.append(
+                {
+                    "chunk_id": chunk.id,
+                    "resource_id": chunk.resource_id,
+                    "title": resource.title if resource else "课程知识库",
+                    "source": metadata.get("source_name") or "人工智能课程知识库",
+                    "source_url": metadata.get("source_url") or "",
+                    "location": f"第 {chunk.chunk_index} 节",
+                    "snippet": self._evidence_excerpt(chunk.content),
+                }
+            )
         if evidence:
             return evidence
 
@@ -958,7 +969,10 @@ class LearningService:
                             "resource_id": resource.id,
                             "title": resource.title,
                             "source": resource.source or f"course_resource:{resource.id}",
-                            "snippet": (resource.content or "")[:180],
+                            "source_url": (resource.resource_metadata or {}).get("source_url", "")
+                            if isinstance(resource.resource_metadata, dict)
+                            else "",
+                            "snippet": self._evidence_excerpt(resource.content or ""),
                         },
                     )
                 )
@@ -974,7 +988,8 @@ class LearningService:
                             "resource_id": resource.id,
                             "title": resource.title,
                             "source": f"resource_center:{resource.id}",
-                            "snippet": (resource.content or resource.description or "")[:180],
+                            "source_url": resource.url or "",
+                            "snippet": self._evidence_excerpt(resource.content or resource.description or ""),
                         },
                     )
                 )
@@ -990,12 +1005,23 @@ class LearningService:
                             "resource_id": question_item.id,
                             "title": "课程题库解析",
                             "source": question_item.source or f"question:{question_item.id}",
-                            "snippet": text[:180],
+                            "snippet": self._evidence_excerpt(text),
                         },
                     )
                 )
         resource_candidates.sort(key=lambda item: item[0], reverse=True)
         return [item for _, item in resource_candidates[:limit]]
+
+    @staticmethod
+    def _evidence_excerpt(content: str, limit: int = 180) -> str:
+        """Return citation-safe plain text instead of raw Markdown fragments."""
+        text = re.sub(r"!\[[^\]]*\]\([^)]*\)", " ", str(content or ""))
+        text = re.sub(r"<img\b[^>]*>", " ", text, flags=re.IGNORECASE)
+        text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
+        text = re.sub(r"^#{1,6}\s*", "", text, flags=re.MULTILINE)
+        text = re.sub(r"[`*_>|]", " ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text[:limit].rstrip()
 
     def _knowledge_points_from_path(self, db: Session, path_id: int | None) -> list[str]:
         if path_id is None:
