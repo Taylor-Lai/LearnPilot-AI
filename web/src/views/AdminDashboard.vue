@@ -1,7 +1,5 @@
 <template>
   <div class="admin-page">
-    <Header />
-
     <div class="admin-layout admin-container">
       <AdminSidebar />
 
@@ -136,7 +134,6 @@ import { BarChart, LineChart, PieChart } from 'echarts/charts'
 import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
 import { init, use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import Header from '../components/AppHeader.vue'
 import AdminSidebar from '../components/admin/AdminSidebar.vue'
 import '../styles/admin-layout.css'
 import { getAdminStatistics } from '../api/admin'

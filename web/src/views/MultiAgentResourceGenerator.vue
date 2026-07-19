@@ -4,11 +4,8 @@
       <header class="section-head hero-head">
         <div class="hero-bg"></div>
         <div class="hero-mask"></div>
-        <button class="ui-back-link page-back-link" type="button" @click="goHome">
-          ← 返回首页
-        </button>
         <p class="eyebrow">多智能体协同 · 资源生成</p>
-        <h2>多智能体协同的资源生成</h2>
+        <h1>多智能体协同的资源生成</h1>
         <p class="section-desc">
           通过智能问答采集学习需求，自动生成思维导图、详解文档、视频资源、在线习题和可编辑代码实操环境。
         </p>
@@ -452,7 +449,6 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import {
   cancelTask as cancelProducerTask,
   chatWithAI,
@@ -476,7 +472,6 @@ import {
 } from '@/utils/producerSession'
 import { normalizeDisplayContent, renderMarkdown } from '@/utils/contentPresentation'
 
-const router = useRouter()
 
 const POLL_INTERVAL_MS = 2000
 const POLL_MAX_MS = 600000
@@ -589,10 +584,6 @@ const codeLanguages = [
 
 const currentLanguageLabel = computed(() => codeLanguages.find(item => item.value === selectedLanguage.value)?.label || '代码')
 const lineNumbers = computed(() => editableCode.value.split('\n').map((_, index) => index + 1).join('\n'))
-
-function goHome() {
-  router.push({ name: 'home' })
-}
 
 function statusText(status) {
   return statusLabels[status] || status || '未知'
@@ -1486,7 +1477,7 @@ onBeforeUnmount(() => {
   color: #4a5568;
 }
 
-.section-head h2 {
+.section-head h1 {
   max-width: 760px;
   margin: 0 auto 12px;
   font-size: 32px;
@@ -2843,7 +2834,7 @@ onBeforeUnmount(() => {
     padding: 32px 18px 20px;
   }
 
-  .section-head h2 {
+  .section-head h1 {
     font-size: 24px;
   }
 
@@ -3170,7 +3161,7 @@ onBeforeUnmount(() => {
 
 .agent-layout { grid-template-columns: 232px minmax(0, 1fr); gap: 20px; }
 .section-head { border: 0; background: linear-gradient(135deg, #171b2e 0%, #292654 56%, #4338ca 100%); box-shadow: var(--shadow-lg); }
-.section-head h2, .section-head .eyebrow { color: #fff; }
+.section-head h1, .section-head .eyebrow { color: #fff; }
 .section-head .section-desc { color: rgba(255,255,255,.72); }
 .page-back-link { border-color: rgba(255,255,255,.15); background: rgba(255,255,255,.1); color: #fff; }
 .page-back-link:hover { background: rgba(255,255,255,.18); }
@@ -3314,6 +3305,47 @@ onBeforeUnmount(() => {
   color: #334155;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* Product command center: generation first, archives second. */
+.agent-page { padding: 16px 24px 72px; }
+.agent-shell { width: min(100%, 1180px); max-width: none; }
+.section-head { margin-bottom: 10px; padding: 20px 34px; text-align: left; }
+.section-head h1 { margin: 5px 0 8px; font-size: 30px; }
+.section-head .section-desc { max-width: 780px; margin: 0; font-size: 14px; line-height: 1.7; }
+.section-head .eyebrow { margin: 0; }
+.agent-layout { grid-template-columns: 208px minmax(0, 1fr); gap: 16px; }
+.agent-nav { position: sticky; top: 88px; align-self: start; padding: 12px; }
+.nav-item { min-height: 58px; padding: 10px 12px; }
+.workspace { display: flex; flex-direction: column; padding: 22px; }
+.workspace-top { order: 1; margin-bottom: 8px; }
+.workspace-top h3 { font-size: 23px; }
+.progress-card { min-width: 108px; padding: 11px 14px; }
+.progress-card strong { font-size: 25px; }
+.generation-panel { order: 2; }
+.trace-card { order: 3; margin-top: 16px; }
+.history-card { order: 4; margin-top: 16px; }
+.history-card .empty-state { min-height: 72px; }
+.resource-preview { padding: 18px; }
+.chat-box {
+  min-height: 84px;
+  height: clamp(84px, calc(100vh - 650px), 280px);
+  max-height: 280px;
+}
+
+@media (max-width: 860px) {
+  .agent-layout { grid-template-columns: 1fr; }
+  .agent-nav { position: static; display: flex; overflow-x: auto; }
+  .nav-item { min-width: 150px; }
+}
+@media (max-width: 600px) {
+  .agent-page { padding: 18px 14px 48px; }
+  .section-head { padding: 24px 20px; }
+  .section-head h1 { font-size: 25px; }
+  .workspace { padding: 16px; }
+  .workspace-top { align-items: center; }
+  .workspace-top p { display: none; }
+  .resource-preview { padding: 14px; }
 }
 
 @media (max-width: 820px) {

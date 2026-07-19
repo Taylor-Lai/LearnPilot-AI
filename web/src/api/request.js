@@ -213,8 +213,17 @@ function handleUnauthorized(url) {
     const currentPath = window.location.pathname
     const currentSearch = window.location.search
     const currentFullPath = `${currentPath}${currentSearch}`
+    const routeMeta = routerInstance?.currentRoute?.value?.meta || {}
+    const isProtectedRoute = Boolean(routeMeta.requiresAuth || routeMeta.requiresAdmin)
 
     if (currentPath === '/login' || currentPath === '/register') {
+      releaseUnauthorizedLock()
+      return
+    }
+
+    // A stale session must not make public product pages unusable. Clear the
+    // invalid credentials, then keep the visitor on the current public page.
+    if (!isProtectedRoute) {
       releaseUnauthorizedLock()
       return
     }

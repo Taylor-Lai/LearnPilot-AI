@@ -18,6 +18,28 @@ const AdminSettings = () => import('../views/AdminSettings.vue')
 const AdminTasks = () => import('../views/AdminTasks.vue')
 const AiTutor = () => import('../views/AiTutor.vue')
 const EvaluationView = () => import('../views/EvaluationView.vue')
+const NotFoundView = () => import('../views/NotFoundView.vue')
+
+const routeTitles = {
+  home: '首页',
+  resources: '资源中心',
+  profileBuilder: '学习画像',
+  multiAgentResource: '智能资源生成',
+  learningPath: '学习路径',
+  evaluation: '学习评估',
+  aiTutor: '智能导师',
+  profile: '个人中心',
+  guide: '使用指南',
+  feedback: '问题反馈',
+  admin: '管理后台',
+  adminFeedback: '反馈管理',
+  adminDashboard: '数据总览',
+  adminTasks: '任务监控',
+  adminSettings: '系统设置',
+  login: '登录',
+  register: '注册',
+  notFound: '页面未找到',
+}
 
 const router = createRouter({
   history: createWebHistory(),
@@ -124,6 +146,11 @@ const router = createRouter({
         mode: 'register',
       },
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'notFound',
+      component: NotFoundView,
+    },
   ],
 })
 
@@ -149,6 +176,11 @@ router.beforeEach((to, from, next) => {
   }
 
   next()
+})
+
+router.afterEach((to) => {
+  const title = routeTitles[to.name] || '个性化学习平台'
+  document.title = `${title} · 汇知灵创`
 })
 
 export default router

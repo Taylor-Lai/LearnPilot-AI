@@ -1,13 +1,5 @@
 <template>
   <div class="profile-page">
-    <Header />
-
-    <div class="back-wrap">
-      <RouterLink to="/" class="ui-back-link">
-        ← 返回首页
-      </RouterLink>
-    </div>
-
     <main class="profile-container">
       <section class="profile-card">
         <div class="section-head">
@@ -329,7 +321,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import Header from '../components/AppHeader.vue'
 import { getUserInfo, updateUserInfo } from '../api/auth'
 import { getCurrentProfile, getUserPathList } from '../api/path'
 import { getEvaluationHistory } from '../api/evaluation'
@@ -789,12 +780,17 @@ onMounted(async () => {
 }
 
 .profile-container {
-  width: min(94%, 1280px);
+  width: min(100% - 48px, 1180px);
   margin: 0 auto;
-  padding: 24px 0 60px;
+  padding: 28px 0 72px;
   display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 24px;
 }
+
+.profile-card { grid-column: 1 / -1; }
+.summary-card, .stats-card { grid-column: span 3; }
+.history-card { grid-column: span 2; }
 
 .profile-card,
 .history-card,
@@ -802,11 +798,15 @@ onMounted(async () => {
 .stats-card {
   position: relative;
   overflow: hidden;
-  padding: 34px;
+  padding: 26px;
   border-radius: 18px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 900px) {
+  .summary-card, .stats-card, .history-card { grid-column: 1 / -1; }
 }
 
 .section-head {

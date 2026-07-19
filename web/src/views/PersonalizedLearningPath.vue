@@ -1,9 +1,5 @@
 <template>
   <section class="learning-path-page">
-    <RouterLink class="ui-back-link page-back-link" to="/">
-      ← 返回首页
-    </RouterLink>
-
     <main class="path-content">
       <section class="hero-card">
         <div class="hero-badge">智能学习规划</div>
@@ -325,7 +321,7 @@
 
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import {
   getCurrentProfile,
   generateLearningPath,
@@ -1935,4 +1931,29 @@ onMounted(async () => {
 .history-card, .profile-card, .planner-card, .result-card { border-color: var(--border-default); border-radius: 20px; box-shadow: var(--shadow-md); }
 .primary-button { background: var(--accent-primary); }
 .primary-button:hover:not(:disabled) { background: var(--accent-hover); box-shadow: 0 10px 24px rgba(99,91,255,.2); }
+
+/* Put planning before archives so the primary action stays above the fold. */
+.learning-path-page { padding: 28px 24px 72px; }
+.path-content { display: flex; width: min(100%, 1180px); max-width: none; flex-direction: column; padding-top: 0; }
+.hero-card { order: 1; margin-bottom: 18px; padding: 28px 34px; }
+.hero-card h1 { margin-bottom: 8px; font-size: 30px; }
+.hero-card .description { max-width: 760px; font-size: 14px; line-height: 1.7; }
+.hero-badge { margin-bottom: 10px; }
+.info-text { order: 2; }
+.main-grid { order: 3; grid-template-columns: minmax(300px, .72fr) minmax(0, 1.28fr); gap: 18px; margin-bottom: 18px; }
+.profile-card, .planner-card { padding: 24px; }
+.planner-card textarea { min-height: 150px; }
+.history-card { order: 4; margin-bottom: 18px; padding: 22px 24px; }
+.history-card .pending-block { min-height: 74px; }
+.result-card { order: 5; }
+
+@media (max-width: 820px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .learning-path-page { padding: 18px 14px 48px; }
+  .hero-card { padding: 24px 20px; }
+  .hero-card h1 { font-size: 25px; }
+  .profile-card, .planner-card, .history-card { padding: 20px; }
+}
 </style>

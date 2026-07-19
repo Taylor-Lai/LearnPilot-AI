@@ -4,11 +4,8 @@
       <header class="section-head hero-head">
         <div class="hero-bg"></div>
         <div class="hero-mask"></div>
-        <button class="ui-back-link page-back-link" type="button" @click="goHome">
-          ← 返回首页
-        </button>
         <p class="eyebrow">INTELLIGENT TUTOR</p>
-        <h2>智能辅导 · AI 虚拟讲师</h2>
+        <h1>智能辅导 · AI 虚拟讲师</h1>
         <p class="section-desc">
           基于大模型的智能辅导系统，实时解答学习疑问，提供详细的知识讲解和个性化的学习建议。
         </p>
@@ -150,14 +147,12 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { askTutor } from '../api/tutor'
 import { getCurrentProfile } from '../api/path'
 import { buildLearningPathProfilePayload } from '../utils/profile'
 import { getStoredUserId } from '../utils/user'
 
-const router = useRouter()
 
 marked.setOptions({
   breaks: true,
@@ -521,10 +516,6 @@ function startVoicePlay() {
   }, 3000)
 }
 
-function goHome() {
-  router.push({ name: 'home' })
-}
-
 onMounted(() => {})
 </script>
 
@@ -586,7 +577,7 @@ onMounted(() => {})
   color: #6b7280;
 }
 
-.section-head h2 {
+.section-head h1 {
   max-width: 760px;
   margin: 0 auto 10px;
   font-size: 34px;
@@ -1278,7 +1269,7 @@ onMounted(() => {})
     border-radius: 14px;
   }
 
-  .section-head h2 {
+  .section-head h1 {
     font-size: 22px;
   }
 
@@ -1460,4 +1451,38 @@ onMounted(() => {})
 .send-button, .primary-button { background: var(--accent-primary); }
 .message.user .message-bubble { background: var(--accent-primary); }
 .message.assistant .message-bubble { border-color: var(--border-default); background: #f7f8fc; color: var(--text-primary); }
+
+/* Focused tutoring workspace with the composer visible on first load. */
+.tutor-page { padding: 28px 24px 72px; }
+.tutor-shell { width: min(100%, 1180px); max-width: none; }
+.hero-head { margin-bottom: 18px; padding: 28px 34px; text-align: left; }
+.hero-head h1 { max-width: none; margin: 5px 0 8px; font-size: 30px; }
+.hero-head .eyebrow, .hero-head .section-desc { max-width: 800px; margin-left: 0; margin-right: 0; }
+.hero-head .section-desc { font-size: 14px; line-height: 1.7; }
+.tutor-layout { grid-template-columns: minmax(0, 1.35fr) minmax(340px, .85fr); gap: 16px; }
+.qa-panel, .explanation-panel { min-height: 660px; }
+.chat-container { padding: 18px; }
+.chat-messages {
+  flex: 0 0 auto;
+  min-height: 140px;
+  height: clamp(140px, calc(100vh - 610px), 340px);
+  max-height: 340px;
+}
+.explanation-content { padding: 20px; }
+.avatar-section { padding-bottom: 15px; margin-bottom: 15px; }
+.avatar-circle { width: 62px; height: 62px; }
+.avatar-emoji { font-size: 20px; }
+.message-item.user .message-bubble { background: var(--accent-primary); border-color: var(--accent-primary); }
+.send-btn { background: var(--accent-primary); }
+
+@media (max-width: 920px) {
+  .tutor-layout { grid-template-columns: 1fr; }
+  .qa-panel, .explanation-panel { min-height: auto; }
+}
+@media (max-width: 600px) {
+  .tutor-page { padding: 18px 14px 48px; }
+  .hero-head { padding: 24px 20px; }
+  .hero-head h1 { font-size: 25px; }
+  .chat-messages { min-height: 420px; }
+}
 </style>

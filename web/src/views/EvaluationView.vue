@@ -1,7 +1,5 @@
 <template>
   <section class="evaluation-page">
-    <RouterLink class="ui-back-link page-back-link" to="/">← 返回首页</RouterLink>
-
     <main class="evaluation-content">
       <section class="hero-card">
         <p class="eyebrow">LEARNING EVALUATION</p>
@@ -909,4 +907,15 @@ select:disabled {
 .hero-card .description { color: rgba(255,255,255,.72); }
 .setup-card, .quiz-card, .result-card, .history-card { border-color: var(--border-default); border-radius: 20px; box-shadow: var(--shadow-md); }
 .primary-button { background: var(--accent-primary); }
+.evaluation-page { padding: 28px 24px 72px; }
+.evaluation-content { width: min(100%, 1070px); max-width: none; padding-top: 0; }
+.hero-card { padding: 28px 34px; }
+.hero-card h1 { margin-bottom: 8px; font-size: 30px; }
+.hero-card .description { max-width: 760px; font-size: 14px; line-height: 1.7; }
+.setup-card, .quiz-card, .result-card, .history-card { padding: 24px; }
+@media (max-width: 600px) {
+  .evaluation-page { padding: 18px 14px 48px; }
+  .hero-card { padding: 24px 20px; }
+  .hero-card h1 { font-size: 25px; }
+}
 </style>

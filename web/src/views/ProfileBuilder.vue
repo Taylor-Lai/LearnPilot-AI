@@ -1,9 +1,5 @@
 <template>
   <section class="profile-page">
-    <RouterLink class="ui-back-link page-back-link" to="/">
-      ← 返回首页
-    </RouterLink>
-
     <main class="profile-content">
       <section class="hero-card">
         <div class="hero-icon" aria-hidden="true">🎓</div>
@@ -303,7 +299,6 @@
 
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
-import { RouterLink } from 'vue-router'
 import { getProfileQuestions, sendProfileAnswer, generateProfile } from '@/api/builder'
 import { normalizeProfileResult } from '@/utils/profile'
 import {
@@ -1675,4 +1670,35 @@ onUnmounted(() => {
 .eyebrow { color: var(--accent-primary); }
 .analysis-card, .conversation-card, .profile-summary-card { border-color: var(--border-default); border-radius: 20px; box-shadow: var(--shadow-sm); }
 .send-button, .primary-button { background: var(--accent-primary); }
+
+/* Product workspace: conversation first, live profile second. */
+.profile-page { padding: 28px 24px 72px; }
+.profile-content { width: min(100%, 1180px); max-width: none; padding-top: 0; }
+.hero-card { margin-bottom: 20px; padding: 28px 34px; text-align: left; }
+.hero-icon { display: none; }
+.hero-card h1 { margin-bottom: 8px; font-size: 30px; }
+.hero-card .description { max-width: 760px; margin: 0; font-size: 14px; line-height: 1.7; }
+.main-grid { grid-template-columns: minmax(420px, .9fr) minmax(0, 1.3fr); grid-template-rows: auto auto; gap: 18px; align-items: start; }
+.dialog-card { grid-column: 1; grid-row: 1 / span 2; position: sticky; top: 92px; padding: 22px; }
+.left-column { grid-column: 2; grid-row: 1; }
+.right-column { grid-column: 2; grid-row: 2; }
+.side-column { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(190px, auto)); gap: 12px; }
+.analysis-card { min-height: 190px; padding: 18px; }
+.analysis-card:hover { transform: none; }
+.pending-block { min-height: 110px; font-size: 14px; letter-spacing: 0; background: #f8f9fc; }
+.chat-list { min-height: 280px; height: clamp(280px, calc(100vh - 440px), 470px); max-height: 470px; }
+.input-card button { border-radius: 12px; background: var(--accent-primary); }
+
+@media (max-width: 1040px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .dialog-card, .left-column, .right-column { grid-column: 1; grid-row: auto; }
+  .dialog-card { position: static; }
+}
+@media (max-width: 680px) {
+  .profile-page { padding: 18px 14px 48px; }
+  .hero-card { padding: 24px 20px; }
+  .hero-card h1 { font-size: 25px; }
+  .side-column { grid-template-columns: 1fr; grid-template-rows: none; }
+  .chat-list { min-height: 420px; max-height: 520px; }
+}
 </style>

@@ -1,13 +1,11 @@
 <template>
   <div class="page">
-    <AppHeader />
     <SpiralHero />
     <HomeFeatureGrid />
   </div>
 </template>
 
 <script setup>
-import AppHeader from '../components/AppHeader.vue'
 import HomeFeatureGrid from '../components/HomeFeatureGrid.vue'
 import SpiralHero from '../components/SpiralHero.vue'
 </script>

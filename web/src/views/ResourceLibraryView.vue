@@ -14,11 +14,6 @@
         {{ item.label }}
       </button>
 
-      <div class="sidebar-footer">
-        <RouterLink to="/" class="ui-back-link ui-back-link--block sidebar-home-link">
-          ← 返回首页
-        </RouterLink>
-      </div>
     </aside>
 
     <!-- Content -->
@@ -160,7 +155,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getResourceList, getResourceDetail, viewResource } from '../api/resource'
 import { marked } from 'marked'
 
@@ -1008,5 +1003,20 @@ watch([activeType, activeCategory, keyword, sortType], () => {
 .filter-card, .resource-card { border-radius: 20px; border-color: var(--border-default); }
 .filter-tag.active { border-color: var(--accent-primary); background: var(--accent-soft); color: var(--accent-primary); }
 .resource-card:hover { border-color: #d9d6ff; box-shadow: 0 18px 38px rgba(65,57,140,.12); }
+.resource-page { width: min(100%, 1240px); min-height: calc(100vh - 68px); margin: 0 auto; gap: 18px; padding: 28px 24px 72px; }
+.resource-sidebar { width: 210px; top: 88px; padding: 14px; }
+.resource-content { max-width: none; }
+.hero-card { margin-bottom: 16px; padding: 28px 32px; }
+.hero-card h1 { margin: 7px 0 5px; font-size: 30px; }
+.hero-card p { margin: 0; }
+
+@media (max-width: 760px) {
+  .resource-page { display: block; padding: 18px 14px 48px; }
+  .resource-sidebar { position: static; display: flex; width: 100%; gap: 6px; margin-bottom: 14px; overflow-x: auto; }
+  .sidebar-title { display: none; }
+  .sidebar-link { width: auto; min-width: 80px; margin: 0; white-space: nowrap; }
+  .hero-card { padding: 24px 20px; }
+  .hero-card h1 { font-size: 25px; }
+}
 
 </style>

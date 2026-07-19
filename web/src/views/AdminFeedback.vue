@@ -1,7 +1,5 @@
 <template>
   <div class="admin-page">
-    <Header />
-
     <div class="admin-layout admin-container">
       <AdminSidebar />
 
@@ -238,7 +236,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { deleteAdminFeedback, getAdminFeedback, resolveAdminFeedback } from '../api/admin'
-import Header from '../components/AppHeader.vue'
 import AdminSidebar from '../components/admin/AdminSidebar.vue'
 import '../styles/admin-layout.css'
 
